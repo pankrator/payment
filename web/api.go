@@ -1,7 +1,5 @@
 package web
 
-import "net/http"
-
 // Controller is the interface that should be implemented by structures to be controllers
 type Controller interface {
 	Routes() []Route
@@ -13,7 +11,9 @@ type Route struct {
 	Endpoint Endpoint
 
 	// Handler is the function that should handle incoming requests for this endpoint
-	Handler http.HandlerFunc
+	Handler HandlerFunc
+
+	ModelBlueprint func() interface{}
 }
 
 // Endpoint is the pair of the http method and path
