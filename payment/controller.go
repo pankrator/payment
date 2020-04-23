@@ -1,7 +1,6 @@
 package payment
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 
@@ -22,8 +21,11 @@ func (c *Controller) payment(rw http.ResponseWriter, req *web.Request) {
 
 	UUID, err := uuid.NewV4()
 	if err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		rw.Write([]byte(err.Error()))
+		log.Printf("Could not generate UUID: %s", err)
+		web.WriteError(rw, &web.HTTPError{
+			StatusCode:  http.StatusInternalServerError,
+			Description: "Internal error",
+		})
 		return
 	}
 
@@ -31,24 +33,17 @@ func (c *Controller) payment(rw http.ResponseWriter, req *web.Request) {
 	transaction.UUID = UUID.String()
 
 	result, err := c.Repository.Create(transaction)
-	// TODO: Use generic methods to write errors
 	if err != nil {
-		rw.WriteHeader(http.StatusBadRequest)
-		rw.Write([]byte(err.Error()))
-		return
-	}
-
-	bytes, err := json.Marshal(result)
-	// TODO: Use generic methods to write errors
-	if err != nil {
-		rw.WriteHeader(http.StatusBadRequest)
-		rw.Write([]byte(err.Error()))
+		web.WriteError(rw, &web.HTTPError{
+			StatusCode:  http.StatusBadRequest,
+			Description: err.Error(),
+		})
 		return
 	}
 
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusCreated)
-	rw.Write(bytes)
+	web.WriteJSON(rw, result)
 }
 
 func (c *Controller) Routes() []web.Route {

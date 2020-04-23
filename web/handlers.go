@@ -28,7 +28,7 @@ func HandlerWrapper(handler HandlerFunc, modelBlueprint func() model.Object) htt
 	return func(rw http.ResponseWriter, req *http.Request) {
 		data, err := ioutil.ReadAll(req.Body)
 		if err != nil {
-			writeError(rw, &HTTPError{
+			WriteError(rw, &HTTPError{
 				StatusCode:  http.StatusInternalServerError,
 				Description: err.Error(),
 			})
@@ -43,7 +43,7 @@ func HandlerWrapper(handler HandlerFunc, modelBlueprint func() model.Object) htt
 			err := xml.Unmarshal(data, model)
 			if err != nil {
 				log.Printf("Could not parse XML: %s", err)
-				writeError(rw, &HTTPError{
+				WriteError(rw, &HTTPError{
 					StatusCode:  http.StatusBadRequest,
 					Description: "Could not parse XML",
 				})
@@ -53,7 +53,7 @@ func HandlerWrapper(handler HandlerFunc, modelBlueprint func() model.Object) htt
 			err := json.Unmarshal(data, model)
 			if err != nil {
 				log.Printf("Could not parse JSON: %s", err)
-				writeError(rw, &HTTPError{
+				WriteError(rw, &HTTPError{
 					StatusCode:  http.StatusBadRequest,
 					Description: "Could not parse JSON: %s",
 				})
@@ -73,7 +73,7 @@ func recoveryMiddleware() mux.MiddlewareFunc {
 		return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 			defer func() {
 				if err := recover(); err != nil {
-					writeError(rw, &HTTPError{
+					WriteError(rw, &HTTPError{
 						StatusCode:  http.StatusInternalServerError,
 						Description: "Unexpected error occured",
 					})
@@ -86,15 +86,20 @@ func recoveryMiddleware() mux.MiddlewareFunc {
 	}
 }
 
-func writeError(rw http.ResponseWriter, err *HTTPError) {
-	log.Printf("error occured %s", err.Description)
+func WriteJSON(rw http.ResponseWriter, v interface{}) {
 	rw.Header().Set("Content-Type", "application/json")
-	rw.WriteHeader(err.StatusCode)
-	bytes, marshalErr := json.Marshal(err)
+	bytes, marshalErr := json.Marshal(v)
 	if marshalErr != nil {
 		panic(marshalErr)
 	}
 	if _, errWrite := rw.Write(bytes); errWrite != nil {
 		panic(errWrite)
 	}
+}
+
+func WriteError(rw http.ResponseWriter, err *HTTPError) {
+	log.Printf("error occured %s", err.Description)
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(err.StatusCode)
+	WriteJSON(rw, err)
 }

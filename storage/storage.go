@@ -84,6 +84,7 @@ func (s *Storage) Create(object model.Object) (model.Object, error) {
 	dbModel := dbModelBlueprint.FromObject(object)
 	err := s.DB.Create(dbModel).Error
 	if err != nil {
+		// TODO: Wrap storage error
 		return nil, err
 	}
 
