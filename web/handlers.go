@@ -9,6 +9,7 @@ import (
 	"runtime/debug"
 
 	"github.com/gorilla/mux"
+	"github.com/pankrator/payment/model"
 )
 
 type HTTPError struct {
@@ -18,12 +19,12 @@ type HTTPError struct {
 
 type Request struct {
 	Request *http.Request
-	Model   interface{}
+	Model   model.Object
 }
 
 type HandlerFunc func(rw http.ResponseWriter, req *Request)
 
-func HandlerWrapper(handler HandlerFunc, modelBlueprint func() interface{}) http.HandlerFunc {
+func HandlerWrapper(handler HandlerFunc, modelBlueprint func() model.Object) http.HandlerFunc {
 	return func(rw http.ResponseWriter, req *http.Request) {
 		data, err := ioutil.ReadAll(req.Body)
 		if err != nil {
@@ -91,7 +92,6 @@ func writeError(rw http.ResponseWriter, err *HTTPError) {
 	rw.WriteHeader(err.StatusCode)
 	bytes, marshalErr := json.Marshal(err)
 	if marshalErr != nil {
-		// TODO: Unexpected error
 		panic(marshalErr)
 	}
 	if _, errWrite := rw.Write(bytes); errWrite != nil {

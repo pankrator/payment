@@ -3,17 +3,10 @@ package main
 import (
 	"context"
 
-	"github.com/pankrator/payment/payment"
-	"github.com/pankrator/payment/web"
+	"github.com/pankrator/payment/app"
 )
 
 func main() {
-	api := &web.Api{
-		Controllers: []web.Controller{
-			&payment.Controller{},
-		},
-	}
-	server := web.NewServer(web.DefaultSettings(), api)
-
-	server.Run(context.Background())
+	application := app.New()
+	application.Start(context.Background())
 }

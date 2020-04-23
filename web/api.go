@@ -1,5 +1,7 @@
 package web
 
+import "github.com/pankrator/payment/model"
+
 // Controller is the interface that should be implemented by structures to be controllers
 type Controller interface {
 	Routes() []Route
@@ -13,7 +15,7 @@ type Route struct {
 	// Handler is the function that should handle incoming requests for this endpoint
 	Handler HandlerFunc
 
-	ModelBlueprint func() interface{}
+	ModelBlueprint func() model.Object
 }
 
 // Endpoint is the pair of the http method and path
