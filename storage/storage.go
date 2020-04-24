@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"errors"
 	"fmt"
 	"log"
 
@@ -13,11 +14,13 @@ import (
 	_ "github.com/golang-migrate/migrate/source/file"
 )
 
+var ErrNotFound error = errors.New("not found in storage")
+
 type Storage struct {
 	*gorm.DB
 	settings *Settings
 
-	models map[string]Model
+	models map[string]func() Model
 }
 
 type Settings struct {
@@ -43,7 +46,7 @@ func DefaultSettings() *Settings {
 func New(s *Settings) *Storage {
 	return &Storage{
 		settings: s,
-		models:   make(map[string]Model),
+		models:   make(map[string]func() Model),
 	}
 }
 
@@ -81,7 +84,7 @@ func (s *Storage) Create(object model.Object) (model.Object, error) {
 	if !found {
 		return nil, fmt.Errorf("no such model found %s", object.GetType())
 	}
-	dbModel := dbModelBlueprint.FromObject(object)
+	dbModel := dbModelBlueprint().FromObject(object)
 	err := s.DB.Create(dbModel).Error
 	if err != nil {
 		// TODO: Wrap storage error
@@ -91,8 +94,39 @@ func (s *Storage) Create(object model.Object) (model.Object, error) {
 	return dbModel.ToObject(), nil
 }
 
-func (s *Storage) RegisterModels(typee string, model Model) {
-	s.models[typee] = model
+func (s *Storage) Save(object model.Object) error {
+	dbModelBlueprint, found := s.models[object.GetType()]
+	if !found {
+		return fmt.Errorf("no such model found %s", object.GetType())
+	}
+	dbModel := dbModelBlueprint().FromObject(object)
+	return s.DB.Save(dbModel).Error
+}
+
+func (s *Storage) Get(typee string, id string) (model.Object, error) {
+	dbModelBlueprint, found := s.models[typee]
+	if !found {
+		return nil, fmt.Errorf("no such model found %s", typee)
+	}
+	dbModel := dbModelBlueprint()
+	result := s.Where("uuid = ?", id).Find(dbModel)
+	if result.RecordNotFound() {
+		return nil, ErrNotFound
+	}
+	return dbModel.ToObject(), result.Error
+}
+
+func (s *Storage) Transaction(f func(s *Storage) error) error {
+	return s.DB.Transaction(func(tx *gorm.DB) error {
+		return f(&Storage{
+			models: s.models,
+			DB:     tx,
+		})
+	})
+}
+
+func (s *Storage) RegisterModels(typee string, modelProvider func() Model) {
+	s.models[typee] = modelProvider
 }
 
 func (s *Storage) migrate(dbURI string) error {
@@ -112,10 +146,11 @@ func (s *Storage) migrate(dbURI string) error {
 
 	err = s.DB.Transaction(func(tx *gorm.DB) error {
 		for _, m := range s.models {
-			tx.AutoMigrate(m)
+			tx.AutoMigrate(m())
 		}
 		for _, m := range s.models {
-			if err := m.InitSQL(tx); err != nil {
+			model := m()
+			if err := model.InitSQL(tx); err != nil {
 				return err
 			}
 		}

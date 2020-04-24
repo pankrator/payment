@@ -3,6 +3,7 @@ package web
 import (
 	"encoding/json"
 	"encoding/xml"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -59,6 +60,14 @@ func HandlerWrapper(handler HandlerFunc, modelBlueprint func() model.Object) htt
 				})
 				return
 			}
+		}
+
+		if err := model.Validate(); err != nil {
+			WriteError(rw, &HTTPError{
+				StatusCode:  http.StatusBadRequest,
+				Description: fmt.Sprintf("Validation of model failed: %s", err),
+			})
+			return
 		}
 
 		handler(rw, &Request{

@@ -1,4 +1,4 @@
-package payment
+package api
 
 import (
 	"log"
@@ -7,16 +7,24 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/pankrator/payment/model"
 
-	"github.com/pankrator/payment/storage"
-
 	"github.com/pankrator/payment/web"
 )
 
-type Controller struct {
-	Repository *storage.Storage
+type PaymentService interface {
+	Create(model.Object) (model.Object, error)
 }
 
-func (c *Controller) payment(rw http.ResponseWriter, req *web.Request) {
+type PaymentController struct {
+	paymentService PaymentService
+}
+
+func NewPaymentController(paymentService PaymentService) web.Controller {
+	return &PaymentController{
+		paymentService: paymentService,
+	}
+}
+
+func (c *PaymentController) payment(rw http.ResponseWriter, req *web.Request) {
 	log.Printf("Received payment transaction %+v", req.Model)
 
 	UUID, err := uuid.NewV4()
@@ -32,7 +40,7 @@ func (c *Controller) payment(rw http.ResponseWriter, req *web.Request) {
 	transaction := req.Model.(*model.Transaction)
 	transaction.UUID = UUID.String()
 
-	result, err := c.Repository.Create(transaction)
+	result, err := c.paymentService.Create(req.Model)
 	if err != nil {
 		web.WriteError(rw, &web.HTTPError{
 			StatusCode:  http.StatusBadRequest,
@@ -41,12 +49,11 @@ func (c *Controller) payment(rw http.ResponseWriter, req *web.Request) {
 		return
 	}
 
-	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusCreated)
 	web.WriteJSON(rw, result)
 }
 
-func (c *Controller) Routes() []web.Route {
+func (c *PaymentController) Routes() []web.Route {
 	return []web.Route{
 		{
 			ModelBlueprint: func() model.Object {

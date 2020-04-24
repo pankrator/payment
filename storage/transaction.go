@@ -3,6 +3,7 @@ package storage
 import (
 	"database/sql/driver"
 	"fmt"
+	"time"
 
 	"github.com/jinzhu/gorm"
 	"github.com/pankrator/payment/model"
@@ -45,8 +46,10 @@ func (p TransactionType) Value() (driver.Value, error) {
 }
 
 type Transaction struct {
-	*gorm.Model
-	UUID          *string         `gorm:"type:varchar(100);unique;not null"`
+	UUID      string `gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+
 	Type          TransactionType `gorm:"type:transaction_type"`
 	Amount        int
 	CustomerEmail string
@@ -54,31 +57,37 @@ type Transaction struct {
 	Status        TransactionState `gorm:"type:transaction_status"`
 
 	Merchant   *Merchant `gorm:"foreignKey:MerchantID"`
-	MerchantID *int
+	MerchantID string
 
 	DependsOn     *Transaction `gorm:"foreignkey:TransactionID"`
-	TransactionID *int
+	TransactionID *string
 }
 
 func (t *Transaction) InitSQL(db *gorm.DB) error {
 	err := db.Model(t).
-		AddForeignKey("transaction_id", "transactions(id)", "RESTRICT", "RESTRICT").
-		AddForeignKey("merchant_id", "merchants(id)", "RESTRICT", "RESTRICT").
-		AddUniqueIndex("unique_uuid", "uuid").
+		AddForeignKey("transaction_id", "transactions(uuid)", "RESTRICT", "RESTRICT").
+		AddForeignKey("merchant_id", "merchants(uuid)", "RESTRICT", "RESTRICT").
 		Error
 
 	return err
 }
 
 func (t *Transaction) ToObject() model.Object {
-	return &model.Transaction{
-		UUID:          *t.UUID,
+	result := &model.Transaction{
+		UUID:          t.UUID,
 		Amount:        t.Amount,
 		CustomerEmail: t.CustomerEmail,
 		CustomerPhone: t.CustomerPhone,
 		Type:          model.TransactionType(t.Type),
 		Status:        model.TransactionState(t.Status),
+		MerchantID:    t.MerchantID,
 	}
+
+	if t.TransactionID != nil {
+		result.DependsOnUUID = *t.TransactionID
+	}
+
+	return result
 }
 
 func (t *Transaction) FromObject(o model.Object) Model {
@@ -86,12 +95,28 @@ func (t *Transaction) FromObject(o model.Object) Model {
 	if !ok {
 		panic(fmt.Sprintf("%s is not transaction", o.GetType()))
 	}
-	return &Transaction{
-		UUID:          &transaction.UUID,
+	result := &Transaction{
+		UUID:          transaction.UUID,
+		MerchantID:    transaction.MerchantID,
 		Amount:        transaction.Amount,
 		CustomerEmail: transaction.CustomerEmail,
 		CustomerPhone: transaction.CustomerPhone,
 		Type:          TransactionType(transaction.Type),
 		Status:        TransactionState(transaction.Status),
 	}
+
+	if transaction.DependsOnUUID != "" {
+		result.TransactionID = &transaction.DependsOnUUID
+	}
+	return result
+	// return &Transaction{
+	// 	UUID:          &transaction.UUID,
+	// 	Amount:        transaction.Amount,
+	// 	CustomerEmail: transaction.CustomerEmail,
+	// 	CustomerPhone: transaction.CustomerPhone,
+	// 	Type:          TransactionType(transaction.Type),
+	// 	Status:        TransactionState(transaction.Status),
+	// MerchantID:    &transaction.MerchantID,
+	// TransactionID: &transaction.TransactionID,
+	// }
 }
