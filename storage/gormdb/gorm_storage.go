@@ -1,8 +1,11 @@
 package gormdb
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
+	"path"
+	"runtime"
 
 	"github.com/pankrator/payment/model"
 	"github.com/pankrator/payment/storage"
@@ -14,21 +17,26 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
+var (
+	_, b, _, _ = runtime.Caller(0)
+	basepath   = path.Dir(b)
+)
+
 type Storage struct {
 	*gorm.DB
 	settings *storage.Settings
 
-	models map[string]func() storage.Model
+	models map[string]func() Model
 }
 
 func New(s *storage.Settings) *Storage {
 	return &Storage{
 		settings: s,
-		models:   make(map[string]func() storage.Model),
+		models:   make(map[string]func() Model),
 	}
 }
 
-func (s *Storage) Open() error {
+func (s *Storage) Open(connectFunc func(driver, url string) (*sql.DB, error)) error {
 	sslmode := "verify-full"
 	if s.settings.SkipSSLValidation {
 		sslmode = "disable"
@@ -41,13 +49,21 @@ func (s *Storage) Open() error {
 		s.settings.Database,
 		sslmode)
 
-	db, err := gorm.Open("postgres", dbURI)
+	connection, err := connectFunc("postgres", dbURI)
+	if err != nil {
+		return err
+	}
 
+	db, err := gorm.Open("postgres", connection)
 	if err != nil {
 		return err
 	}
 	s.DB = db
 	s.configure()
+
+	s.registerModels(model.TransactionObjectType, func() Model { return &Transaction{} })
+	s.registerModels(model.MerchantType, func() Model { return &Merchant{} })
+
 	if err := s.migrate(dbURI); err != nil {
 		return err
 	}
@@ -120,7 +136,7 @@ func (s *Storage) Transaction(f func(s storage.Storage) error) error {
 	})
 }
 
-func (s *Storage) RegisterModels(typee string, modelProvider func() storage.Model) {
+func (s *Storage) registerModels(typee string, modelProvider func() Model) {
 	s.models[typee] = modelProvider
 }
 
@@ -130,7 +146,7 @@ func (s *Storage) migrate(dbURI string) error {
 		return fmt.Errorf("could not initialize driver: %s", err)
 	}
 	// TODO: Introduce configuration for migrations path
-	m, err := migrate.NewWithDatabaseInstance("file://storage/migrations", "postgres", driver)
+	m, err := migrate.NewWithDatabaseInstance(fmt.Sprintf("file://%s/migrations", basepath), "postgres", driver)
 	if err != nil {
 		return fmt.Errorf("could not initialize migrate: %s", err)
 	}

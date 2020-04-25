@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"database/sql"
 	"errors"
 
 	"github.com/pankrator/payment/model"
@@ -9,9 +10,8 @@ import (
 var ErrNotFound error = errors.New("not found in storage")
 
 type Storage interface {
-	Open() error
+	Open(func(string, string) (*sql.DB, error)) error
 	Close()
-	RegisterModels(typee string, modelProvider func() Model)
 
 	Create(object model.Object) (model.Object, error)
 	Save(object model.Object) error

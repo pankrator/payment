@@ -1,4 +1,4 @@
-package storage
+package gormdb
 
 import (
 	"database/sql/driver"

@@ -2,12 +2,12 @@ package app
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/pankrator/payment/config"
 	"github.com/spf13/afero"
 
 	"github.com/pankrator/payment/api"
-	"github.com/pankrator/payment/model"
 	"github.com/pankrator/payment/services"
 	"github.com/pankrator/payment/storage"
 	"github.com/pankrator/payment/storage/gormdb"
@@ -31,7 +31,6 @@ func New() *App {
 	settings := config.Load(cfg)
 
 	repository := gormdb.New(settings.Storage)
-
 	paymentService := services.NewPaymentService(repository)
 
 	api := &web.Api{
@@ -48,15 +47,10 @@ func New() *App {
 }
 
 func (a *App) Start(ctx context.Context) {
-	a.registerModels()
-
-	if err := a.repository.Open(); err != nil {
+	if err := a.repository.Open(func(driver, url string) (*sql.DB, error) {
+		return sql.Open(driver, url)
+	}); err != nil {
 		panic(err)
 	}
 	a.server.Run(ctx)
-}
-
-func (a *App) registerModels() {
-	a.repository.RegisterModels(model.TransactionObjectType, func() storage.Model { return &storage.Transaction{} })
-	a.repository.RegisterModels(model.MerchantType, func() storage.Model { return &storage.Merchant{} })
 }
