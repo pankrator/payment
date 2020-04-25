@@ -7,6 +7,6 @@ import (
 
 type Model interface {
 	InitSQL(*gorm.DB) error
-	FromObject(o model.Object) Model
+	FromObject(o model.Object) (Model, error)
 	ToObject() model.Object
 }

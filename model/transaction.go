@@ -3,6 +3,7 @@ package model
 import (
 	"encoding/xml"
 	"errors"
+	"fmt"
 )
 
 const TransactionObjectType string = "Transaction"
@@ -51,6 +52,16 @@ func (t *Transaction) Validate() error {
 	}
 	if t.Status != "" {
 		return errors.New("status should not be provided")
+	}
+	switch t.Type {
+	case Authorize:
+		if t.DependsOnUUID != "" {
+			return fmt.Errorf("transaction of type %s cannot depend on another transaction", Authorize)
+		}
+	default:
+		if t.DependsOnUUID == "" {
+			return fmt.Errorf("transaction of type %s should depend on another transaction", t.Type)
+		}
 	}
 	return nil
 }

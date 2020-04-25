@@ -90,10 +90,10 @@ func (t *Transaction) ToObject() model.Object {
 	return result
 }
 
-func (t *Transaction) FromObject(o model.Object) Model {
+func (t *Transaction) FromObject(o model.Object) (Model, error) {
 	transaction, ok := o.(*model.Transaction)
 	if !ok {
-		panic(fmt.Sprintf("%s is not transaction", o.GetType()))
+		return nil, fmt.Errorf("%s is not transaction", o.GetType())
 	}
 	result := &Transaction{
 		UUID:          transaction.UUID,
@@ -108,15 +108,5 @@ func (t *Transaction) FromObject(o model.Object) Model {
 	if transaction.DependsOnUUID != "" {
 		result.TransactionID = &transaction.DependsOnUUID
 	}
-	return result
-	// return &Transaction{
-	// 	UUID:          &transaction.UUID,
-	// 	Amount:        transaction.Amount,
-	// 	CustomerEmail: transaction.CustomerEmail,
-	// 	CustomerPhone: transaction.CustomerPhone,
-	// 	Type:          TransactionType(transaction.Type),
-	// 	Status:        TransactionState(transaction.Status),
-	// MerchantID:    &transaction.MerchantID,
-	// TransactionID: &transaction.TransactionID,
-	// }
+	return result, nil
 }

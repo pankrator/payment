@@ -34,10 +34,10 @@ func (m *Merchant) ToObject() model.Object {
 	}
 }
 
-func (m *Merchant) FromObject(o model.Object) Model {
+func (m *Merchant) FromObject(o model.Object) (Model, error) {
 	merchant, ok := o.(*model.Merchant)
 	if !ok {
-		panic(fmt.Sprintf("%s is not merchant", o.GetType()))
+		return nil, fmt.Errorf("%s is not merchant", o.GetType())
 	}
 	return &Merchant{
 		UUID:                merchant.UUID,
@@ -46,5 +46,5 @@ func (m *Merchant) FromObject(o model.Object) Model {
 		Email:               merchant.Email,
 		Status:              merchant.Status,
 		TotalTransactionSum: merchant.TotalTransactionSum,
-	}
+	}, nil
 }

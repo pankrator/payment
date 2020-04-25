@@ -8,10 +8,10 @@ import (
 )
 
 type PaymentService struct {
-	Repository *storage.Storage
+	Repository storage.Storage
 }
 
-func NewPaymentService(repository *storage.Storage) *PaymentService {
+func NewPaymentService(repository storage.Storage) *PaymentService {
 	return &PaymentService{
 		Repository: repository,
 	}
@@ -25,10 +25,16 @@ func (ps *PaymentService) Create(object model.Object) (model.Object, error) {
 		return nil, err
 	}
 
-	var err error
 	var parentTransaction *model.Transaction
 
 	if transaction.Type != model.Authorize {
+		count, err := ps.Repository.Count(model.TransactionObjectType, "transaction_id = ?", transaction.DependsOnUUID)
+		if err != nil {
+			return nil, err
+		}
+		if count > 0 {
+			return nil, fmt.Errorf("this transaction is already followed")
+		}
 		parentTransaction, err = ps.findParentTransaction(ps.Repository, transaction)
 		if err != nil {
 			return nil, err
@@ -43,55 +49,58 @@ func (ps *PaymentService) Create(object model.Object) (model.Object, error) {
 	case model.Authorize:
 		return ps.Repository.Create(transaction)
 	case model.Charge:
-		// TODO: If authorize transaction is not approved, then set to error current transaction
-		err := ps.Repository.Transaction(func(tx *storage.Storage) error {
-			object, err = tx.Create(transaction)
-			if err != nil {
-				return fmt.Errorf("database operation failed: %s", err)
-			}
-
-			object, err := tx.Get(model.MerchantType, transaction.MerchantID)
-			if err != nil {
-				return err
-			}
-			merchant := object.(*model.Merchant)
-			merchant.TotalTransactionSum += int64(transaction.Amount)
-			return tx.Save(merchant)
-		})
-		if err != nil {
-			return nil, err
-		}
-		return object, nil
-
+		return ps.chargeTransaction(transaction)
 	case model.Refund:
-		err := ps.Repository.Transaction(func(tx *storage.Storage) error {
-			object, err = tx.Create(transaction)
-			if err != nil {
-				return fmt.Errorf("database operation failed: %s", err)
-			}
-
-			parentTransaction.Status = model.Refunded
-			if err := tx.Save(parentTransaction); err != nil {
-				return err
-			}
-
-			object, err := tx.Get(model.MerchantType, transaction.MerchantID)
-			if err != nil {
-				return err
-			}
-
-			merchant := object.(*model.Merchant)
-			merchant.TotalTransactionSum -= int64(transaction.Amount)
-			return tx.Save(merchant)
-		})
-		if err != nil {
-			return nil, err
-		}
-		return object, nil
-
+		return ps.refundTransaction(transaction, parentTransaction)
 	default:
 		return nil, fmt.Errorf("transaction type %s not recognized", transaction.Type)
 	}
+}
+
+func (ps *PaymentService) chargeTransaction(transaction *model.Transaction) (model.Object, error) {
+	var result model.Object
+	err := ps.Repository.Transaction(func(tx storage.Storage) error {
+		var err error
+		result, err = tx.Create(transaction)
+		if err != nil {
+			return fmt.Errorf("database operation failed: %s", err)
+		}
+		object, err := tx.Get(model.MerchantType, transaction.MerchantID)
+		if err != nil {
+			return err
+		}
+		merchant := object.(*model.Merchant)
+		merchant.TotalTransactionSum += int64(transaction.Amount)
+		return tx.Save(merchant)
+	})
+
+	return result, err
+}
+
+func (ps *PaymentService) refundTransaction(transaction, parentTransaction *model.Transaction) (model.Object, error) {
+	var result model.Object
+	err := ps.Repository.Transaction(func(tx storage.Storage) error {
+		var err error
+		result, err = tx.Create(transaction)
+		if err != nil {
+			return fmt.Errorf("database operation failed: %s", err)
+		}
+
+		parentTransaction.Status = model.Refunded
+		if err := tx.Save(parentTransaction); err != nil {
+			return err
+		}
+
+		object, err := tx.Get(model.MerchantType, transaction.MerchantID)
+		if err != nil {
+			return err
+		}
+
+		merchant := object.(*model.Merchant)
+		merchant.TotalTransactionSum -= int64(transaction.Amount)
+		return tx.Save(merchant)
+	})
+	return result, err
 }
 
 func (ps *PaymentService) checkParentTransactionConditions(transaction *model.Transaction, parent *model.Transaction) error {
@@ -130,7 +139,7 @@ func (ps *PaymentService) checkMerchantStatus(transaction *model.Transaction) er
 	return nil
 }
 
-func (ps *PaymentService) findParentTransaction(repository *storage.Storage, transaction *model.Transaction) (*model.Transaction, error) {
+func (ps *PaymentService) findParentTransaction(repository storage.Storage, transaction *model.Transaction) (*model.Transaction, error) {
 	object, err := repository.Get(model.TransactionObjectType, transaction.DependsOnUUID)
 	if err != nil {
 		if err == storage.ErrNotFound {

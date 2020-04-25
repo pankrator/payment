@@ -7,19 +7,20 @@ import (
 	"github.com/pankrator/payment/model"
 	"github.com/pankrator/payment/services"
 	"github.com/pankrator/payment/storage"
+	"github.com/pankrator/payment/storage/gormdb"
 	"github.com/pankrator/payment/web"
 )
 
 type App struct {
 	server     *web.Server
-	repository *storage.Storage
+	repository storage.Storage
 }
 
 func New() *App {
 	web.RegisterParser("application/xml", &web.XMLParser{})
 	web.RegisterParser("application/json", &web.JSONParser{})
 
-	repository := storage.New(storage.DefaultSettings())
+	repository := gormdb.New(storage.DefaultSettings())
 
 	paymentService := services.NewPaymentService(repository)
 
