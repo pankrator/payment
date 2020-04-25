@@ -16,6 +16,9 @@ type App struct {
 }
 
 func New() *App {
+	web.RegisterParser("application/xml", &web.XMLParser{})
+	web.RegisterParser("application/json", &web.JSONParser{})
+
 	repository := storage.New(storage.DefaultSettings())
 
 	paymentService := services.NewPaymentService(repository)

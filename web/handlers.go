@@ -2,7 +2,6 @@ package web
 
 import (
 	"encoding/json"
-	"encoding/xml"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -14,8 +13,12 @@ import (
 )
 
 type HTTPError struct {
-	StatusCode  int
-	Description string
+	StatusCode  int    `json:"status"`
+	Description string `json:"description"`
+}
+
+func (he *HTTPError) Error() string {
+	return he.Description
 }
 
 type Request struct {
@@ -27,54 +30,66 @@ type HandlerFunc func(rw http.ResponseWriter, req *Request)
 
 func HandlerWrapper(handler HandlerFunc, modelBlueprint func() model.Object) http.HandlerFunc {
 	return func(rw http.ResponseWriter, req *http.Request) {
-		data, err := ioutil.ReadAll(req.Body)
-		if err != nil {
-			WriteError(rw, &HTTPError{
-				StatusCode:  http.StatusInternalServerError,
-				Description: err.Error(),
-			})
-			return
-		}
-
-		model := modelBlueprint()
-
-		contentType := req.Header.Get("Content-Type")
-		switch contentType {
-		case "application/xml":
-			err := xml.Unmarshal(data, model)
-			if err != nil {
-				log.Printf("Could not parse XML: %s", err)
-				WriteError(rw, &HTTPError{
-					StatusCode:  http.StatusBadRequest,
-					Description: "Could not parse XML",
-				})
-				return
-			}
-		default:
-			err := json.Unmarshal(data, model)
-			if err != nil {
-				log.Printf("Could not parse JSON: %s", err)
-				WriteError(rw, &HTTPError{
-					StatusCode:  http.StatusBadRequest,
-					Description: "Could not parse JSON: %s",
-				})
-				return
-			}
-		}
-
-		if err := model.Validate(); err != nil {
-			WriteError(rw, &HTTPError{
-				StatusCode:  http.StatusBadRequest,
-				Description: fmt.Sprintf("Validation of model failed: %s", err),
-			})
-			return
-		}
-
-		handler(rw, &Request{
+		webRequest := &Request{
 			Request: req,
-			Model:   model,
-		})
+		}
+		if req.Method == http.MethodPost {
+			data, err := readBody(req)
+			if err != nil {
+				WriteError(rw, err)
+				return
+			}
+
+			contentType := req.Header.Get("Content-Type")
+			object := modelBlueprint()
+			object, err = parseModel(contentType, data, object)
+			if err != nil {
+				WriteError(rw, err)
+				return
+			}
+
+			if err := object.Validate(); err != nil {
+				WriteError(rw, &HTTPError{
+					StatusCode:  http.StatusBadRequest,
+					Description: fmt.Sprintf("Validation of model failed: %s", err),
+				})
+				return
+			}
+			webRequest.Model = object
+		}
+
+		handler(rw, webRequest)
 	}
+}
+
+func parseModel(contentType string, data []byte, object model.Object) (model.Object, error) {
+	parser, found := GetParser(contentType)
+	if !found {
+		return nil, &HTTPError{
+			StatusCode:  http.StatusBadRequest,
+			Description: fmt.Sprintf("No parser found for type %s", contentType),
+		}
+	}
+	err := parser.Unmarshal(data, object)
+	if err != nil {
+		return nil, &HTTPError{
+			StatusCode:  http.StatusBadRequest,
+			Description: fmt.Sprintf("Could not parse type %s: %s", contentType, err),
+		}
+	}
+
+	return object, nil
+}
+
+func readBody(req *http.Request) ([]byte, error) {
+	data, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		return nil, &HTTPError{
+			StatusCode:  http.StatusInternalServerError,
+			Description: err.Error(),
+		}
+	}
+	return data, nil
 }
 
 func recoveryMiddleware() mux.MiddlewareFunc {
@@ -95,8 +110,9 @@ func recoveryMiddleware() mux.MiddlewareFunc {
 	}
 }
 
-func WriteJSON(rw http.ResponseWriter, v interface{}) {
+func WriteJSON(rw http.ResponseWriter, status int, v interface{}) {
 	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(status)
 	bytes, marshalErr := json.Marshal(v)
 	if marshalErr != nil {
 		panic(marshalErr)
@@ -106,9 +122,19 @@ func WriteJSON(rw http.ResponseWriter, v interface{}) {
 	}
 }
 
-func WriteError(rw http.ResponseWriter, err *HTTPError) {
-	log.Printf("error occured %s", err.Description)
+func WriteError(rw http.ResponseWriter, err error) {
+	log.Printf("error occured %s", err)
 	rw.Header().Set("Content-Type", "application/json")
-	rw.WriteHeader(err.StatusCode)
-	WriteJSON(rw, err)
+	var httpError *HTTPError
+	switch v := err.(type) {
+	case *HTTPError:
+		httpError = v
+	default:
+		httpError = &HTTPError{
+			StatusCode:  http.StatusInternalServerError,
+			Description: "Internal Server Error",
+		}
+	}
+
+	WriteJSON(rw, httpError.StatusCode, httpError)
 }

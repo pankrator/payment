@@ -51,7 +51,7 @@ func New(s *Settings) *Storage {
 }
 
 func (s *Storage) Open() error {
-	sslmode := "require"
+	sslmode := "verify-full"
 	if s.settings.SkipSSLValidation {
 		sslmode = "disable"
 	}

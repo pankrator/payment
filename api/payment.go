@@ -49,8 +49,7 @@ func (c *PaymentController) payment(rw http.ResponseWriter, req *web.Request) {
 		return
 	}
 
-	rw.WriteHeader(http.StatusCreated)
-	web.WriteJSON(rw, result)
+	web.WriteJSON(rw, http.StatusCreated, result)
 }
 
 func (c *PaymentController) Routes() []web.Route {

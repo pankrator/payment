@@ -28,7 +28,7 @@ func DefaultSettings() *Settings {
 }
 
 type Server struct {
-	router   *mux.Router
+	Router   *mux.Router
 	settings *Settings
 }
 
@@ -39,7 +39,7 @@ func NewServer(s *Settings, api *Api) *Server {
 	registerControllers(api, router)
 
 	return &Server{
-		router:   router,
+		Router:   router,
 		settings: s,
 	}
 }
@@ -55,7 +55,7 @@ func registerControllers(api *Api, router *mux.Router) {
 
 func (s *Server) Run(ctx context.Context) {
 	server := &http.Server{
-		Handler:           s.router,
+		Handler:           s.Router,
 		Addr:              s.settings.Host + ":" + s.settings.Port,
 		ReadTimeout:       s.settings.RequestTimeout,
 		WriteTimeout:      s.settings.WriteTimeout,
