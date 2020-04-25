@@ -22,12 +22,12 @@ type Storage interface {
 }
 
 type Settings struct {
-	Host              string
-	Port              string
-	Database          string
-	Username          string
-	Password          string
-	SkipSSLValidation bool
+	Host              string `mapstructure:"host"`
+	Port              string `mapstructure:"port"`
+	Database          string `mapstructure:"database"`
+	Username          string `mapstructure:"username"`
+	Password          string `mapstructure:"password"`
+	SkipSSLValidation bool   `mapstructure:"skip_ssl_validation"`
 }
 
 func DefaultSettings() *Settings {
@@ -38,5 +38,16 @@ func DefaultSettings() *Settings {
 		Username:          "payment",
 		Password:          "payment",
 		SkipSSLValidation: true,
+	}
+}
+
+func (s *Settings) Keys() []string {
+	return []string{
+		"host",
+		"port",
+		"database",
+		"username",
+		"password",
+		"skip_ssl_validation",
 	}
 }

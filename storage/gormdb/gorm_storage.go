@@ -129,6 +129,7 @@ func (s *Storage) migrate(dbURI string) error {
 	if err != nil {
 		return fmt.Errorf("could not initialize driver: %s", err)
 	}
+	// TODO: Introduce configuration for migrations path
 	m, err := migrate.NewWithDatabaseInstance("file://storage/migrations", "postgres", driver)
 	if err != nil {
 		return fmt.Errorf("could not initialize migrate: %s", err)

@@ -3,6 +3,8 @@ package app
 import (
 	"context"
 
+	"github.com/pankrator/payment/config"
+
 	"github.com/pankrator/payment/api"
 	"github.com/pankrator/payment/model"
 	"github.com/pankrator/payment/services"
@@ -20,7 +22,10 @@ func New() *App {
 	web.RegisterParser("application/xml", &web.XMLParser{})
 	web.RegisterParser("application/json", &web.JSONParser{})
 
-	repository := gormdb.New(storage.DefaultSettings())
+	cfg := config.New()
+	settings := config.Load(cfg)
+
+	repository := gormdb.New(settings.Storage)
 
 	paymentService := services.NewPaymentService(repository)
 
@@ -30,7 +35,7 @@ func New() *App {
 		},
 	}
 
-	server := web.NewServer(web.DefaultSettings(), api)
+	server := web.NewServer(settings.Server, api)
 	return &App{
 		server:     server,
 		repository: repository,

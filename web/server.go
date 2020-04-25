@@ -10,11 +10,11 @@ import (
 )
 
 type Settings struct {
-	Host           string
-	Port           string
-	HeaderTimeout  time.Duration
-	RequestTimeout time.Duration
-	WriteTimeout   time.Duration
+	Host           string        `mapstructure:"host"`
+	Port           string        `mapstructure:"port"`
+	HeaderTimeout  time.Duration `mapstructure:"header_timeout"`
+	RequestTimeout time.Duration `mapstructure:"request_timeout"`
+	WriteTimeout   time.Duration `mapstructure:"write_timeout"`
 }
 
 func DefaultSettings() *Settings {
@@ -24,6 +24,16 @@ func DefaultSettings() *Settings {
 		HeaderTimeout:  time.Second * 10,
 		RequestTimeout: time.Second * 10,
 		WriteTimeout:   time.Second * 10,
+	}
+}
+
+func (s *Settings) Keys() []string {
+	return []string{
+		"host",
+		"port",
+		"header_timeout",
+		"request_timeout",
+		"write_timeout",
 	}
 }
 
