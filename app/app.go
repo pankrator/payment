@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/pankrator/payment/config"
+	"github.com/spf13/afero"
 
 	"github.com/pankrator/payment/api"
 	"github.com/pankrator/payment/model"
@@ -22,7 +23,11 @@ func New() *App {
 	web.RegisterParser("application/xml", &web.XMLParser{})
 	web.RegisterParser("application/json", &web.JSONParser{})
 
-	cfg := config.New()
+	cfg, err := config.New(afero.NewOsFs())
+	if err != nil {
+		panic(err)
+	}
+
 	settings := config.Load(cfg)
 
 	repository := gormdb.New(settings.Storage)

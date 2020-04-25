@@ -6,6 +6,7 @@ import (
 
 	"github.com/pankrator/payment/storage"
 	"github.com/pankrator/payment/web"
+	"github.com/spf13/afero"
 	"github.com/spf13/viper"
 )
 
@@ -18,21 +19,22 @@ type KeyableSetting interface {
 	Keys() []string
 }
 
+func (s *Settings) Keys() []string {
+	keys := make([]string, 0)
+	for _, k := range s.Storage.Keys() {
+		keys = append(keys, "storage."+k)
+	}
+
+	for _, k := range s.Server.Keys() {
+		keys = append(keys, "server."+k)
+	}
+	return keys
+}
+
 func Load(config *Config) *Settings {
 	settings := &Settings{
 		Storage: storage.DefaultSettings(),
 		Server:  web.DefaultSettings(),
-	}
-	all := map[string]KeyableSetting{
-		"storage": storage.DefaultSettings(),
-		"server":  web.DefaultSettings(),
-	}
-	for settingName, setting := range all {
-		for _, k := range setting.Keys() {
-			if err := config.BindEnv(settingName + "." + k); err != nil {
-				panic(err)
-			}
-		}
 	}
 
 	if err := config.Unmarshal(settings); err != nil {
@@ -46,7 +48,7 @@ type Config struct {
 	*viper.Viper
 }
 
-func New() *Config {
+func New(fs afero.Fs) (*Config, error) {
 	v := viper.New()
 	v.SetConfigType("yaml")
 	v.SetConfigName("config")
@@ -54,12 +56,22 @@ func New() *Config {
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
 	v.SetEnvPrefix("PAY")
+	v.SetFs(fs)
 
 	if err := v.ReadInConfig(); err != nil {
-		panic(fmt.Errorf("could not read config file: %s", err))
+		return nil, fmt.Errorf("could not read config file: %s", err)
 	}
 
 	return &Config{
 		Viper: v,
+	}, nil
+}
+
+func (c *Config) Unmarshal(value KeyableSetting) error {
+	for _, k := range value.Keys() {
+		if err := c.BindEnv(k); err != nil {
+			return err
+		}
 	}
+	return c.Viper.Unmarshal(value)
 }
