@@ -1,3 +1,5 @@
+# github.com/DATA-DOG/go-sqlmock v1.4.1
+github.com/DATA-DOG/go-sqlmock
 # github.com/ajg/form v1.5.1
 github.com/ajg/form
 # github.com/davecgh/go-spew v1.1.1
