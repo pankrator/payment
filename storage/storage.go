@@ -9,6 +9,7 @@ import (
 
 var ErrNotFound error = errors.New("not found in storage")
 
+//go:generate counterfeiter . Storage
 type Storage interface {
 	Open(func(string, string) (*sql.DB, error)) error
 	Close()

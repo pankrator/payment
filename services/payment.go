@@ -1,24 +1,37 @@
 package services
 
 import (
+	"errors"
 	"fmt"
+	"log"
 
+	"github.com/gofrs/uuid"
 	"github.com/pankrator/payment/model"
 	"github.com/pankrator/payment/storage"
 )
 
 type PaymentService struct {
-	Repository storage.Storage
+	repository storage.Storage
 }
 
 func NewPaymentService(repository storage.Storage) *PaymentService {
 	return &PaymentService{
-		Repository: repository,
+		repository: repository,
 	}
 }
 
-func (ps *PaymentService) Create(object model.Object) (model.Object, error) {
-	transaction := object.(*model.Transaction)
+func (ps *PaymentService) Create(transaction *model.Transaction) (model.Object, error) {
+	if err := transaction.Validate(); err != nil {
+		return nil, err
+	}
+
+	UUID, err := uuid.NewV4()
+	if err != nil {
+		log.Printf("Could not generate UUID: %s", err)
+		return nil, errors.New("could not generate UUID")
+	}
+
+	transaction.UUID = UUID.String()
 	transaction.Status = model.Approved
 
 	if err := ps.checkMerchantStatus(transaction); err != nil {
@@ -27,15 +40,17 @@ func (ps *PaymentService) Create(object model.Object) (model.Object, error) {
 
 	var parentTransaction *model.Transaction
 
+	// TODO: Do everything in one transaction, otherwise it might happen that two requests change the same parent or so and
+	// might get into inconsistent state
 	if transaction.Type != model.Authorize {
-		count, err := ps.Repository.Count(model.TransactionObjectType, "transaction_id = ?", transaction.DependsOnUUID)
+		count, err := ps.repository.Count(model.TransactionObjectType, "transaction_id = ?", transaction.DependsOnUUID)
 		if err != nil {
 			return nil, err
 		}
 		if count > 0 {
-			return nil, fmt.Errorf("this transaction is already followed")
+			return nil, fmt.Errorf("the parent transaction is already followed")
 		}
-		parentTransaction, err = ps.findParentTransaction(ps.Repository, transaction)
+		parentTransaction, err = ps.findParentTransaction(ps.repository, transaction)
 		if err != nil {
 			return nil, err
 		}
@@ -47,7 +62,7 @@ func (ps *PaymentService) Create(object model.Object) (model.Object, error) {
 
 	switch transaction.Type {
 	case model.Authorize:
-		return ps.Repository.Create(transaction)
+		return ps.repository.Create(transaction)
 	case model.Charge:
 		return ps.chargeTransaction(transaction)
 	case model.Refund:
@@ -59,7 +74,7 @@ func (ps *PaymentService) Create(object model.Object) (model.Object, error) {
 
 func (ps *PaymentService) chargeTransaction(transaction *model.Transaction) (model.Object, error) {
 	var result model.Object
-	err := ps.Repository.Transaction(func(tx storage.Storage) error {
+	err := ps.repository.Transaction(func(tx storage.Storage) error {
 		var err error
 		result, err = tx.Create(transaction)
 		if err != nil {
@@ -79,7 +94,7 @@ func (ps *PaymentService) chargeTransaction(transaction *model.Transaction) (mod
 
 func (ps *PaymentService) refundTransaction(transaction, parentTransaction *model.Transaction) (model.Object, error) {
 	var result model.Object
-	err := ps.Repository.Transaction(func(tx storage.Storage) error {
+	err := ps.repository.Transaction(func(tx storage.Storage) error {
 		var err error
 		result, err = tx.Create(transaction)
 		if err != nil {
@@ -112,7 +127,6 @@ func (ps *PaymentService) checkParentTransactionConditions(transaction *model.Tr
 		if parent.Status != model.Approved {
 			return fmt.Errorf("authorize transaction should be approved, but is %s", parent.Status)
 		}
-		// TODO: Check if parent transaction is not already referenced by another transaction
 	case model.Refund:
 		if parent.Type != model.Charge {
 			return fmt.Errorf("parent transaction should be of type %s", model.Charge)
@@ -125,7 +139,7 @@ func (ps *PaymentService) checkParentTransactionConditions(transaction *model.Tr
 }
 
 func (ps *PaymentService) checkMerchantStatus(transaction *model.Transaction) error {
-	object, err := ps.Repository.Get(model.MerchantType, transaction.MerchantID)
+	object, err := ps.repository.Get(model.MerchantType, transaction.MerchantID)
 	if err != nil {
 		if err == storage.ErrNotFound {
 			return fmt.Errorf("merchant with id %s not found", transaction.MerchantID)
