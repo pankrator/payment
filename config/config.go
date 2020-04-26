@@ -48,11 +48,11 @@ type Config struct {
 	*viper.Viper
 }
 
-func New(fs afero.Fs) (*Config, error) {
+func New(configPath string, fs afero.Fs) (*Config, error) {
 	v := viper.New()
 	v.SetConfigType("yaml")
 	v.SetConfigName("config")
-	v.AddConfigPath(".")
+	v.AddConfigPath(configPath)
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
 	v.SetEnvPrefix("PAY")

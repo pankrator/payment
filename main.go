@@ -7,6 +7,6 @@ import (
 )
 
 func main() {
-	application := app.New()
+	application := app.New(".")
 	application.Start(context.Background())
 }

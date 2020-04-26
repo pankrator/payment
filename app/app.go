@@ -15,15 +15,15 @@ import (
 )
 
 type App struct {
-	server     *web.Server
-	repository storage.Storage
+	Server     *web.Server
+	Repository storage.Storage
 }
 
-func New() *App {
+func New(configFileLocation string) *App {
 	web.RegisterParser("application/xml", &web.XMLParser{})
 	web.RegisterParser("application/json", &web.JSONParser{})
 
-	cfg, err := config.New(afero.NewOsFs())
+	cfg, err := config.New(configFileLocation, afero.NewOsFs())
 	if err != nil {
 		panic(err)
 	}
@@ -41,16 +41,16 @@ func New() *App {
 
 	server := web.NewServer(settings.Server, api)
 	return &App{
-		server:     server,
-		repository: repository,
+		Server:     server,
+		Repository: repository,
 	}
 }
 
 func (a *App) Start(ctx context.Context) {
-	if err := a.repository.Open(func(driver, url string) (*sql.DB, error) {
+	if err := a.Repository.Open(func(driver, url string) (*sql.DB, error) {
 		return sql.Open(driver, url)
 	}); err != nil {
 		panic(err)
 	}
-	a.server.Run(ctx)
+	a.Server.Run(ctx)
 }

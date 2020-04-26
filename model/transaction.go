@@ -47,7 +47,7 @@ func (t *Transaction) Validate() error {
 	if t.MerchantID == "" {
 		return errors.New("merchant id is required for transaction")
 	}
-	if t.Amount < 1 {
+	if t.Amount < 1 && t.Type != Reversal {
 		return errors.New("amount should be greater than 0")
 	}
 	if t.Status != "" {

@@ -38,7 +38,7 @@ var _ = Describe("Config", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		_, err = file.Write(bytes)
 		Expect(err).ShouldNot(HaveOccurred())
-		c, err = config.New(fs)
+		c, err = config.New(basePath, fs)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -69,7 +69,7 @@ var _ = Describe("Config", func() {
 
 	When("file does not exist", func() {
 		It("should fail", func() {
-			_, err := config.New(afero.NewMemMapFs())
+			_, err := config.New(".", afero.NewMemMapFs())
 			Expect(err).Should(HaveOccurred())
 		})
 	})

@@ -16,6 +16,7 @@ type Storage interface {
 
 	Create(object model.Object) (model.Object, error)
 	Save(object model.Object) error
+	DeleteAll(typee string) error
 	Get(typee string, id string) (model.Object, error)
 	Count(typee string, condition string, args ...interface{}) (int, error)
 

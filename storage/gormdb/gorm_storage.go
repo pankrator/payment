@@ -127,6 +127,15 @@ func (s *Storage) Count(typee string, condition string, args ...interface{}) (in
 	return count, result.Error
 }
 
+func (s *Storage) DeleteAll(typee string) error {
+	dbModelBlueprint, found := s.models[typee]
+	if !found {
+		return fmt.Errorf("no such model found %s", typee)
+	}
+	dbModel := dbModelBlueprint()
+	return s.Delete(dbModel).Error
+}
+
 func (s *Storage) Transaction(f func(s storage.Storage) error) error {
 	return s.DB.Transaction(func(tx *gorm.DB) error {
 		return f(&Storage{

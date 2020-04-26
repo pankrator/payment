@@ -42,6 +42,17 @@ type FakeStorage struct {
 		result1 model.Object
 		result2 error
 	}
+	DeleteAllStub        func(string) error
+	deleteAllMutex       sync.RWMutex
+	deleteAllArgsForCall []struct {
+		arg1 string
+	}
+	deleteAllReturns struct {
+		result1 error
+	}
+	deleteAllReturnsOnCall map[int]struct {
+		result1 error
+	}
 	GetStub        func(string, string) (model.Object, error)
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
@@ -242,6 +253,66 @@ func (fake *FakeStorage) CreateReturnsOnCall(i int, result1 model.Object, result
 		result1 model.Object
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeStorage) DeleteAll(arg1 string) error {
+	fake.deleteAllMutex.Lock()
+	ret, specificReturn := fake.deleteAllReturnsOnCall[len(fake.deleteAllArgsForCall)]
+	fake.deleteAllArgsForCall = append(fake.deleteAllArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("DeleteAll", []interface{}{arg1})
+	fake.deleteAllMutex.Unlock()
+	if fake.DeleteAllStub != nil {
+		return fake.DeleteAllStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.deleteAllReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeStorage) DeleteAllCallCount() int {
+	fake.deleteAllMutex.RLock()
+	defer fake.deleteAllMutex.RUnlock()
+	return len(fake.deleteAllArgsForCall)
+}
+
+func (fake *FakeStorage) DeleteAllCalls(stub func(string) error) {
+	fake.deleteAllMutex.Lock()
+	defer fake.deleteAllMutex.Unlock()
+	fake.DeleteAllStub = stub
+}
+
+func (fake *FakeStorage) DeleteAllArgsForCall(i int) string {
+	fake.deleteAllMutex.RLock()
+	defer fake.deleteAllMutex.RUnlock()
+	argsForCall := fake.deleteAllArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeStorage) DeleteAllReturns(result1 error) {
+	fake.deleteAllMutex.Lock()
+	defer fake.deleteAllMutex.Unlock()
+	fake.DeleteAllStub = nil
+	fake.deleteAllReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeStorage) DeleteAllReturnsOnCall(i int, result1 error) {
+	fake.deleteAllMutex.Lock()
+	defer fake.deleteAllMutex.Unlock()
+	fake.DeleteAllStub = nil
+	if fake.deleteAllReturnsOnCall == nil {
+		fake.deleteAllReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.deleteAllReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeStorage) Get(arg1 string, arg2 string) (model.Object, error) {
@@ -497,6 +568,8 @@ func (fake *FakeStorage) Invocations() map[string][][]interface{} {
 	defer fake.countMutex.RUnlock()
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
+	fake.deleteAllMutex.RLock()
+	defer fake.deleteAllMutex.RUnlock()
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
 	fake.openMutex.RLock()
