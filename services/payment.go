@@ -40,7 +40,7 @@ func (ps *PaymentService) Create(transaction *model.Transaction) (model.Object, 
 
 	var parentTransaction *model.Transaction
 
-	// TODO: Do everything in one transaction, otherwise it might happen that two requests change the same parent or so and
+	// TODO: Do everything in one transaction, otherwise it might happen that two requests change dependent entities or so and
 	// might get into inconsistent state
 	if transaction.Type != model.Authorize {
 		count, err := ps.repository.Count(model.TransactionObjectType, "transaction_id = ?", transaction.DependsOnUUID)
@@ -58,6 +58,8 @@ func (ps *PaymentService) Create(transaction *model.Transaction) (model.Object, 
 		if err = ps.checkParentTransactionConditions(transaction, parentTransaction); err != nil {
 			return nil, err
 		}
+
+		ps.updateStateBasedOnParent(transaction, parentTransaction)
 	}
 
 	switch transaction.Type {
@@ -67,6 +69,8 @@ func (ps *PaymentService) Create(transaction *model.Transaction) (model.Object, 
 		return ps.chargeTransaction(transaction)
 	case model.Refund:
 		return ps.refundTransaction(transaction, parentTransaction)
+	case model.Reversal:
+		return ps.reverseTransaction(transaction, parentTransaction)
 	default:
 		return nil, fmt.Errorf("transaction type %s not recognized", transaction.Type)
 	}
@@ -80,13 +84,17 @@ func (ps *PaymentService) chargeTransaction(transaction *model.Transaction) (mod
 		if err != nil {
 			return fmt.Errorf("database operation failed: %s", err)
 		}
-		object, err := tx.Get(model.MerchantType, transaction.MerchantID)
-		if err != nil {
-			return err
+
+		if transaction.Status != model.Errored {
+			object, err := tx.Get(model.MerchantType, transaction.MerchantID)
+			if err != nil {
+				return err
+			}
+			merchant := object.(*model.Merchant)
+			merchant.TotalTransactionSum += int64(transaction.Amount)
+			return tx.Save(merchant)
 		}
-		merchant := object.(*model.Merchant)
-		merchant.TotalTransactionSum += int64(transaction.Amount)
-		return tx.Save(merchant)
+		return nil
 	})
 
 	return result, err
@@ -101,41 +109,71 @@ func (ps *PaymentService) refundTransaction(transaction, parentTransaction *mode
 			return fmt.Errorf("database operation failed: %s", err)
 		}
 
-		parentTransaction.Status = model.Refunded
-		if err := tx.Save(parentTransaction); err != nil {
-			return err
+		if transaction.Status != model.Errored {
+			parentTransaction.Status = model.Refunded
+			if err := tx.Save(parentTransaction); err != nil {
+				return err
+			}
+
+			object, err := tx.Get(model.MerchantType, transaction.MerchantID)
+			if err != nil {
+				return err
+			}
+
+			merchant := object.(*model.Merchant)
+			merchant.TotalTransactionSum -= int64(transaction.Amount)
+			return tx.Save(merchant)
 		}
 
-		object, err := tx.Get(model.MerchantType, transaction.MerchantID)
+		return nil
+	})
+	return result, err
+}
+
+func (ps *PaymentService) reverseTransaction(transaction, parentTransaction *model.Transaction) (model.Object, error) {
+	var result model.Object
+	err := ps.repository.Transaction(func(tx storage.Storage) error {
+		var err error
+		result, err = tx.Create(transaction)
 		if err != nil {
-			return err
+			return fmt.Errorf("database operation failed: %s", err)
 		}
 
-		merchant := object.(*model.Merchant)
-		merchant.TotalTransactionSum -= int64(transaction.Amount)
-		return tx.Save(merchant)
+		parentTransaction.Status = model.Reversed
+		return tx.Save(parentTransaction)
 	})
 	return result, err
 }
 
 func (ps *PaymentService) checkParentTransactionConditions(transaction *model.Transaction, parent *model.Transaction) error {
 	switch transaction.Type {
+	case model.Reversal:
+		fallthrough
 	case model.Charge:
 		if parent.Type != model.Authorize {
 			return fmt.Errorf("parent transaction should be of type %s", model.Authorize)
-		}
-		if parent.Status != model.Approved {
-			return fmt.Errorf("authorize transaction should be approved, but is %s", parent.Status)
 		}
 	case model.Refund:
 		if parent.Type != model.Charge {
 			return fmt.Errorf("parent transaction should be of type %s", model.Charge)
 		}
-		if parent.Status != model.Approved {
-			return fmt.Errorf("cannot refund charge transaction that is in state %s", parent.Status)
-		}
 	}
 	return nil
+}
+
+func (ps *PaymentService) updateStateBasedOnParent(transaction *model.Transaction, parent *model.Transaction) {
+	switch transaction.Type {
+	case model.Reversal:
+		fallthrough
+	case model.Charge:
+		if parent.Status != model.Approved {
+			transaction.Status = model.Errored
+		}
+	case model.Refund:
+		if parent.Status != model.Approved {
+			transaction.Status = model.Errored
+		}
+	}
 }
 
 func (ps *PaymentService) checkMerchantStatus(transaction *model.Transaction) error {

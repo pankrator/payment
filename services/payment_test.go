@@ -149,26 +149,6 @@ var _ = Describe("Payment service", func() {
 						})
 					})
 
-					When("parent is authorize, but not approved", func() {
-						BeforeEach(func() {
-							authorizeTransaction.Status = model.Reversed
-							fakeStorage.GetReturnsOnCall(1, authorizeTransaction, nil)
-						})
-
-						It("should fail to create", func() {
-							_, err := paymentService.Create(&model.Transaction{
-								Type:          model.Charge,
-								Amount:        10,
-								DependsOnUUID: "parent-uuid",
-								CustomerEmail: "user@customer.com",
-								CustomerPhone: "000000000",
-								MerchantID:    "1",
-							})
-							Expect(err).Should(HaveOccurred())
-							Expect(err.Error()).Should(ContainSubstring("authorize transaction should be approved, but is reversed"))
-						})
-					})
-
 					When("parent is authorize", func() {
 						BeforeEach(func() {
 							fakeStorage.GetReturnsOnCall(1, authorizeTransaction, nil)
@@ -216,26 +196,6 @@ var _ = Describe("Payment service", func() {
 							})
 							Expect(err).Should(HaveOccurred())
 							Expect(err.Error()).To(ContainSubstring("parent transaction should be of type charge"))
-						})
-					})
-
-					When("parent is charge, but no approved", func() {
-						BeforeEach(func() {
-							chargeTransaction.Status = model.Refunded
-							fakeStorage.GetReturnsOnCall(1, chargeTransaction, nil)
-						})
-
-						It("should fail", func() {
-							_, err := paymentService.Create(&model.Transaction{
-								Type:          model.Refund,
-								DependsOnUUID: "parent-id",
-								Amount:        10,
-								CustomerEmail: "user@customer.com",
-								CustomerPhone: "000000000",
-								MerchantID:    "1",
-							})
-							Expect(err).Should(HaveOccurred())
-							Expect(err.Error()).To(ContainSubstring("cannot refund charge transaction that is in state refunded"))
 						})
 					})
 
