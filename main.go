@@ -8,6 +8,5 @@ import (
 
 func main() {
 	application := app.New(".")
-	application.InitUsers(context.Background())
 	application.Start(context.Background())
 }

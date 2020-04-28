@@ -70,7 +70,7 @@ func (ta *TokenAuthenticator) Authenticate(req *http.Request) (*UserData, error)
 	}
 	claims := &struct {
 		Email  string   `json:"email"`
-		Scopes []string `json:"scopes"`
+		Scopes []string `json:"scope"`
 	}{}
 	if err := token.Claims(claims); err != nil {
 		return nil, err

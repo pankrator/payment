@@ -19,10 +19,20 @@ func (s *Settings) Keys() []string {
 	}
 }
 
+type UserType string
+
+var (
+	Merchant UserType = "merchant"
+	Admin    UserType = "admin"
+)
+
 type User struct {
-	Name     string
-	Email    string
-	Password string
+	Type        UserType
+	Name        string
+	Email       string
+	Password    string
+	Status      string
+	Description string
 }
 
 type UserReader struct {
@@ -30,7 +40,7 @@ type UserReader struct {
 	settings *Settings
 }
 
-func NewReader(settings *Settings) *UserReader {
+func NewCSVReader(settings *Settings) *UserReader {
 	return &UserReader{
 		settings: settings,
 	}
@@ -49,9 +59,12 @@ func (ur *UserReader) Load() error {
 	ur.Users = make([]User, 0, len(results))
 	for _, result := range results {
 		ur.Users = append(ur.Users, User{
-			Name:     result[0],
-			Email:    result[1],
-			Password: result[2],
+			Type:        UserType(result[0]),
+			Name:        result[1],
+			Email:       result[2],
+			Password:    result[3],
+			Description: result[4],
+			Status:      result[5],
 		})
 	}
 

@@ -32,6 +32,13 @@ scim:
     uaa.admin: Act as an administrator throughout the UAA
     uaa.none: Forbid acting as a user
     uaa.offline_token: Allow offline access
+
+    transaction.read: Allows to read transactions
+    transaction.write: Allows to write transactions
+    merchant.read: Allows to read merchants
+    merchant.write: Allows to write merchants
+    merchant.delete: Allows to delete merchants
+
   users:
     - testy|testy|testy@test.org|testy|testy|
     - manager|manager|manager@test.org|manager|manager|
@@ -68,7 +75,7 @@ oauth:
     payment:
       id: payment
       secret: '1234'
-      scope: uaa.user,refresh_token
+      scope: uaa.user,refresh_token,transaction.read,transaction.write,merchant.read,merchant.write,merchant.delete
       authorized-grant-types: password,refresh_token
 
 

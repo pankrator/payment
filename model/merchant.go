@@ -1,5 +1,7 @@
 package model
 
+import "github.com/pankrator/payment/users"
+
 const MerchantType string = "Merchant"
 
 type Merchant struct {
@@ -17,4 +19,14 @@ func (m *Merchant) GetType() string {
 
 func (m *Merchant) Validate() error {
 	return nil
+}
+
+func MerchantFromUser(user users.User) *Merchant {
+	return &Merchant{
+		Name:                user.Name,
+		Email:               user.Email,
+		Description:         user.Description,
+		Status:              user.Status == "active",
+		TotalTransactionSum: 0,
+	}
 }

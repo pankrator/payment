@@ -4,8 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"time"
 
+	"github.com/pankrator/payment/model"
 	"github.com/pankrator/payment/uaa"
 	"github.com/pankrator/payment/users"
 
@@ -27,6 +29,8 @@ type App struct {
 	Repository storage.Storage
 	UaaClient  *uaa.UAAClient
 	Settings   *config.Settings
+
+	merchantService MerchantService
 }
 
 func New(configFileLocation string) *App {
@@ -62,6 +66,7 @@ func New(configFileLocation string) *App {
 
 	repository := gormdb.New(settings.Storage)
 	paymentService := services.NewPaymentService(repository)
+	merchantService := services.NewMerchantService(repository)
 
 	api := &web.Api{
 		Controllers: []web.Controller{
@@ -74,24 +79,73 @@ func New(configFileLocation string) *App {
 
 	server := web.NewServer(settings.Server, api)
 	return &App{
-		Server:     server,
-		Repository: repository,
-		UaaClient:  uaaClient,
-		Settings:   settings,
+		Server:          server,
+		Repository:      repository,
+		UaaClient:       uaaClient,
+		Settings:        settings,
+		merchantService: merchantService,
 	}
 }
 
-func (a *App) InitUsers(ctx context.Context) {
-	reader := users.NewReader(a.Settings.Users)
-	if err := reader.Load(); err != nil {
-		panic(fmt.Errorf("Could not read users: %s", err))
+func (a *App) initUsers(ctx context.Context, usersData []users.User, groupNames []string) {
+	groups := make([]*uaa.Group, 0)
+	for _, groupName := range groupNames {
+		g, err := a.UaaClient.GetGroup(ctx, groupName)
+		if err != nil {
+			panic(fmt.Errorf("could not get uaa groups: %s", err))
+		}
+		groups = append(groups, g)
 	}
-	for _, user := range reader.Users {
-		err := a.UaaClient.CreateUser(ctx, user.Name, user.Email, user.Password)
+
+	for _, user := range usersData {
+		if user.Type == users.Merchant {
+			count, err := a.Repository.Count(model.MerchantType, "email = ?", user.Email)
+			if err != nil {
+				panic(err)
+			}
+			if count < 1 {
+				_, err = a.merchantService.Create(model.MerchantFromUser(user))
+				if err != nil {
+					panic(fmt.Errorf("could not create merchant: %s", err))
+				}
+			} else {
+				log.Println("Merchant already created")
+			}
+		}
+
+		userID, err := a.UaaClient.CreateUser(ctx, user.Name, user.Email, user.Password)
 		if err != nil {
 			panic(fmt.Errorf("could not create user: %s", err))
 		}
+		if userID != "" {
+			for _, group := range groups {
+				if added, err := a.UaaClient.AddUserToGroup(ctx, userID, group); err != nil {
+					panic(fmt.Errorf("could not add user to group: %s", err))
+				} else if added {
+					log.Printf("User %s added to group %s", user.Name, group.DisplayName)
+				}
+			}
+		}
 	}
+}
+
+func (a *App) loadUsers() *users.UserReader {
+	reader := users.NewCSVReader(a.Settings.Users)
+	if err := reader.Load(); err != nil {
+		panic(fmt.Errorf("Could not read users: %s", err))
+	}
+	return reader
+}
+
+func splitUsersByType(reader *users.UserReader) map[users.UserType][]users.User {
+	result := make(map[users.UserType][]users.User)
+	for _, user := range reader.Users {
+		if _, found := result[user.Type]; !found {
+			result[user.Type] = make([]users.User, 0)
+		}
+		result[user.Type] = append(result[user.Type], user)
+	}
+	return result
 }
 
 func (a *App) Start(ctx context.Context) {
@@ -100,5 +154,22 @@ func (a *App) Start(ctx context.Context) {
 	}); err != nil {
 		panic(err)
 	}
+
+	reader := a.loadUsers()
+	usersByType := splitUsersByType(reader)
+
+	adminGroups := []string{"merchant.read", "merchant.write", "merchant.delete", "transaction.write", "transaction.read"}
+	merchantGroups := []string{"transaction.write", "transaction.read"}
+
+	a.initUsers(
+		ctx,
+		usersByType[users.Admin],
+		adminGroups,
+	)
+	a.initUsers(
+		ctx,
+		usersByType[users.Merchant],
+		merchantGroups,
+	)
 	a.Server.Run(ctx)
 }
