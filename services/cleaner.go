@@ -40,6 +40,7 @@ func (tc *TransactionClenaer) Start(ctx context.Context) {
 			select {
 			case <-ctx.Done():
 				log.Printf("Context cancelled. Stopping the transaction cleaner...")
+				return
 			case <-elapsed:
 				log.Printf("Cleaning old transactions...")
 				if err := tc.run(ctx); err != nil {

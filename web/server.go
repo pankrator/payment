@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -66,7 +67,7 @@ func registerControllers(api *Api, router *mux.Router) {
 	}
 }
 
-func (s *Server) Run(ctx context.Context) {
+func (s *Server) Run(ctx context.Context, wg *sync.WaitGroup) {
 	server := &http.Server{
 		Handler:           s.Router,
 		Addr:              s.settings.Host + ":" + s.settings.Port,
@@ -74,8 +75,23 @@ func (s *Server) Run(ctx context.Context) {
 		WriteTimeout:      s.settings.WriteTimeout,
 		ReadHeaderTimeout: s.settings.HeaderTimeout,
 	}
+	go shutdownServer(ctx, wg, server)
+
+	wg.Add(1)
 	log.Printf("Server listening on port %s...", s.settings.Port)
-	if err := server.ListenAndServe(); err != nil {
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Panicf("http server failed: %s", err)
+	}
+}
+
+func shutdownServer(ctx context.Context, wg *sync.WaitGroup, server *http.Server) {
+	<-ctx.Done()
+	defer wg.Done()
+	log.Printf("Server shutting down. Will wait for 5 seconds...")
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	err := server.Shutdown(shutdownCtx)
+	if err != nil {
+		log.Printf("Server errored while shutting down: %s", err)
 	}
 }

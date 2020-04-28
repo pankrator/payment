@@ -5,6 +5,9 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
+	"sync"
 	"time"
 
 	"github.com/pankrator/payment/auth"
@@ -153,7 +156,9 @@ func splitUsersByType(reader *users.UserReader) map[users.UserType][]users.User 
 	return result
 }
 
-func (a *App) Start(ctx context.Context) {
+func (a *App) Start(ctx context.Context, wg *sync.WaitGroup, cancel context.CancelFunc) {
+	go handleInterrupts(ctx, cancel)
+
 	if err := a.Repository.Open(func(driver, url string) (*sql.DB, error) {
 		return sql.Open(driver, url)
 	}); err != nil {
@@ -178,5 +183,17 @@ func (a *App) Start(ctx context.Context) {
 	)
 
 	a.transactionCleaner.Start(ctx)
-	a.Server.Run(ctx)
+	a.Server.Run(ctx, wg)
+}
+
+func handleInterrupts(ctx context.Context, cancel context.CancelFunc) {
+	s := make(chan os.Signal, 1)
+	signal.Notify(s, os.Interrupt)
+	select {
+	case <-s:
+		log.Printf("Received interrupt signal")
+		cancel()
+	case <-ctx.Done():
+		return
+	}
 }
