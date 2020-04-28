@@ -26,5 +26,6 @@ type Endpoint struct {
 
 // Api contains all the controllers for the instantiated Api and can be attached to the http server
 type Api struct {
+	Filters     []Filter
 	Controllers []Controller
 }

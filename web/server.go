@@ -58,7 +58,9 @@ func registerControllers(api *Api, router *mux.Router) {
 	for _, ctrl := range api.Controllers {
 		for _, route := range ctrl.Routes() {
 			log.Printf("Registering endpoint: %s %s", route.Endpoint.Method, route.Endpoint.Path)
-			router.Handle(route.Endpoint.Path, HandlerWrapper(route.Handler, route.ModelBlueprint)).Methods(route.Endpoint.Method)
+			wrappedHandler := HandlerWrapper(route.Handler, route.ModelBlueprint)
+			chainedHandler := Chain(wrappedHandler, MatchFilters(route.Endpoint, api.Filters))
+			router.Handle(route.Endpoint.Path, chainedHandler).Methods(route.Endpoint.Method)
 		}
 	}
 }

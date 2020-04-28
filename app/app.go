@@ -4,8 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
-	"net/http"
 	"time"
 
 	"github.com/pankrator/payment/uaa"
@@ -60,6 +58,7 @@ func New(configFileLocation string) *App {
 	if err != nil {
 		panic(fmt.Errorf("could not build authenticator: %s", err))
 	}
+	authFilter := auth.NewFilter(authenticator)
 
 	repository := gormdb.New(settings.Storage)
 	paymentService := services.NewPaymentService(repository)
@@ -68,22 +67,12 @@ func New(configFileLocation string) *App {
 		Controllers: []web.Controller{
 			api.NewPaymentController(paymentService),
 		},
+		Filters: []web.Filter{
+			authFilter,
+		},
 	}
 
 	server := web.NewServer(settings.Server, api)
-	server.Router.Use(func(handler http.Handler) http.Handler {
-		return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-			if req.URL.Path == "/payment" && req.Method == http.MethodPost {
-				user, err := authenticator.Authenticate(req)
-				if err != nil {
-					web.WriteError(rw, err)
-					return
-				}
-				log.Printf("Logged in user is: %s", user.Email)
-				handler.ServeHTTP(rw, req)
-			}
-		})
-	})
 	return &App{
 		Server:     server,
 		Repository: repository,
