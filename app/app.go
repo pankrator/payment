@@ -7,11 +7,12 @@ import (
 	"log"
 	"time"
 
+	"github.com/pankrator/payment/auth"
 	"github.com/pankrator/payment/model"
 	"github.com/pankrator/payment/uaa"
 	"github.com/pankrator/payment/users"
 
-	"github.com/pankrator/payment/api/auth"
+	"github.com/pankrator/payment/api/filter"
 
 	oauth "github.com/pankrator/payment/auth"
 	"github.com/pankrator/payment/config"
@@ -62,7 +63,7 @@ func New(configFileLocation string) *App {
 	if err != nil {
 		panic(fmt.Errorf("could not build authenticator: %s", err))
 	}
-	authFilter := auth.NewFilter(authenticator)
+	authFilter := filter.NewAuthFilter(authenticator)
 
 	repository := gormdb.New(settings.Storage)
 	paymentService := services.NewPaymentService(repository)

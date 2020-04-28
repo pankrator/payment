@@ -20,10 +20,7 @@ func GetInfo(oauthUrl string) (*AuthInfo, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, &web.HTTPError{
-			StatusCode:  http.StatusBadGateway,
-			Description: fmt.Sprintf("Unexpected status returned from Oauth Server: %d", resp.StatusCode),
-		}
+		return nil, fmt.Errorf("Unexpected status returned from Oauth Server: %d", resp.StatusCode)
 	}
 	info := &AuthInfo{}
 	if err := web.BodyToObject(resp.Body, info); err != nil {

@@ -1,12 +1,9 @@
 package api
 
 import (
-	"fmt"
 	"log"
 	"net/http"
-	"strings"
 
-	"github.com/pankrator/payment/api/auth"
 	"github.com/pankrator/payment/model"
 
 	"github.com/pankrator/payment/web"
@@ -27,28 +24,6 @@ func NewPaymentController(paymentService PaymentService) web.Controller {
 }
 
 func (c *PaymentController) payment(rw http.ResponseWriter, req *web.Request) {
-	user, found := auth.UserFromContext(req.Request.Context())
-	if !found {
-		web.WriteError(rw, &web.HTTPError{
-			StatusCode:  http.StatusUnauthorized,
-			Description: fmt.Sprintf("User not found"),
-		})
-		return
-	}
-	// TODO: Extract scope checks
-	scopeFound := false
-	for _, scope := range user.Scopes {
-		if scope == "transaction.write" {
-			scopeFound = true
-		}
-	}
-	if !scopeFound {
-		web.WriteError(rw, &web.HTTPError{
-			StatusCode:  http.StatusForbidden,
-			Description: fmt.Sprintf("User scopes [%s] does not contain required scope transaction.write", strings.Join(user.Scopes, ",")),
-		})
-	}
-
 	log.Printf("Received payment transaction %+v", req.Model)
 
 	transaction := req.Model.(*model.Transaction)
@@ -74,6 +49,9 @@ func (c *PaymentController) Routes() []web.Route {
 			Endpoint: web.Endpoint{
 				Method: http.MethodPost,
 				Path:   "/payment",
+			},
+			Scopes: func() []string {
+				return []string{"transaction.write"}
 			},
 			Handler: c.payment,
 		},

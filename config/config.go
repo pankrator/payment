@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pankrator/payment/api/auth"
+	"github.com/pankrator/payment/auth"
 	"github.com/pankrator/payment/storage"
 	"github.com/pankrator/payment/users"
 	"github.com/pankrator/payment/web"

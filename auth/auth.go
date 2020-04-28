@@ -2,18 +2,17 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/coreos/go-oidc"
-	"github.com/pankrator/payment/auth"
 	"github.com/pankrator/payment/web"
 )
 
-type UserData struct {
-	Email  string
-	Scopes []string
-}
+var NoTokenProvidedErr = errors.New("no token provided")
+var VerificationFailedErr = errors.New("could not verify token")
 
 type Settings struct {
 	OauthServerURL    string `mapstructure:"oauth_server_url"`
@@ -40,7 +39,7 @@ type TokenAuthenticator struct {
 }
 
 func NewTokenAuthenticator(ctx context.Context, settings *Settings) (*TokenAuthenticator, error) {
-	info, err := auth.GetInfo(settings.OauthServerURL)
+	info, err := GetInfo(settings.OauthServerURL)
 	if err != nil {
 		return nil, fmt.Errorf("could not get oauth server info: %s", err)
 	}
@@ -54,19 +53,17 @@ func NewTokenAuthenticator(ctx context.Context, settings *Settings) (*TokenAuthe
 	}, nil
 }
 
-func (ta *TokenAuthenticator) Authenticate(req *http.Request) (*UserData, error) {
+func (ta *TokenAuthenticator) Authenticate(req *http.Request) (*web.UserData, error) {
 	ctx := req.Context()
 	authHeader := req.Header.Get("Authorization")
 	if len(authHeader) < 7 {
-		return nil, &web.HTTPError{
-			StatusCode:  http.StatusUnauthorized,
-			Description: "Bearer token not provided",
-		}
+		return nil, NoTokenProvidedErr
 	}
 	tokenText := authHeader[len("Bearer "):]
 	token, err := ta.verifier.Verify(ctx, tokenText)
 	if err != nil {
-		return nil, err
+		log.Printf("could not verify token: %s", err)
+		return nil, VerificationFailedErr
 	}
 	claims := &struct {
 		Email  string   `json:"email"`
@@ -75,7 +72,7 @@ func (ta *TokenAuthenticator) Authenticate(req *http.Request) (*UserData, error)
 	if err := token.Claims(claims); err != nil {
 		return nil, err
 	}
-	return &UserData{
+	return &web.UserData{
 		Email:  claims.Email,
 		Scopes: claims.Scopes,
 	}, nil

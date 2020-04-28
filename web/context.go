@@ -1,4 +1,4 @@
-package auth
+package web
 
 import "context"
 
@@ -7,6 +7,11 @@ type ctxKey int
 const (
 	userCtxKey ctxKey = iota
 )
+
+type UserData struct {
+	Email  string
+	Scopes []string
+}
 
 func ContextWithUser(ctx context.Context, user *UserData) context.Context {
 	return context.WithValue(ctx, userCtxKey, user)

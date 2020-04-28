@@ -15,7 +15,11 @@ type Route struct {
 	// Handler is the function that should handle incoming requests for this endpoint
 	Handler HandlerFunc
 
+	// ModelBlueprint returns an instance of the model for which the endpoint handler is responsible for
 	ModelBlueprint func() model.Object
+
+	// Scopes returns the scopes this endpoint needs in order to be accessible
+	Scopes func() []string
 }
 
 // Endpoint is the pair of the http method and path
