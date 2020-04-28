@@ -3,6 +3,7 @@ package web
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -34,7 +35,7 @@ func HandlerWrapper(handler HandlerFunc, modelBlueprint func() model.Object) htt
 			Request: req,
 		}
 		if req.Method == http.MethodPost {
-			data, err := readBody(req)
+			data, err := ReadBody(req.Body)
 			if err != nil {
 				WriteError(rw, err)
 				return
@@ -81,8 +82,13 @@ func parseModel(contentType string, data []byte, object model.Object) (model.Obj
 	return object, nil
 }
 
-func readBody(req *http.Request) ([]byte, error) {
-	data, err := ioutil.ReadAll(req.Body)
+func ReadBody(body io.ReadCloser) ([]byte, error) {
+	data, err := ioutil.ReadAll(body)
+	defer func() {
+		if err := body.Close(); err != nil {
+			panic(err)
+		}
+	}()
 	if err != nil {
 		return nil, &HTTPError{
 			StatusCode:  http.StatusInternalServerError,
@@ -90,6 +96,14 @@ func readBody(req *http.Request) ([]byte, error) {
 		}
 	}
 	return data, nil
+}
+
+func BodyToObject(body io.ReadCloser, value interface{}) error {
+	bytes, err := ReadBody(body)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(bytes, value)
 }
 
 func recoveryMiddleware() mux.MiddlewareFunc {

@@ -65,7 +65,7 @@ var _ = Describe("Transactions", func() {
 			}).Expect().Status(http.StatusBadRequest).JSON().Object().Value("description").String().Contains("parent transaction should be of type charge")
 		})
 
-		It("should find authorize transaction id db", func() {
+		It("should find authorize transaction in db", func() {
 			result, err := testApp.Repository.Get(model.TransactionObjectType, authorizeTransactionID)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(result).To(Equal(&model.Transaction{

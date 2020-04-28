@@ -6,3 +6,12 @@ storage:
   username: payment
   password: payment
   database: payment
+auth:
+  admin_client_id: "admin-client"
+  admin_client_secret: adminclientsecret
+  oauth_server_url: http://localhost:8080
+  client_id: payment
+  client_secret: 1234
+users:
+  file_name: users.csv
+  file_location: "."

@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/pankrator/payment/api/auth"
 	"github.com/pankrator/payment/storage"
+	"github.com/pankrator/payment/users"
 	"github.com/pankrator/payment/web"
 	"github.com/spf13/afero"
 	"github.com/spf13/viper"
@@ -13,6 +15,8 @@ import (
 type Settings struct {
 	Storage *storage.Settings `mapstructure:"storage"`
 	Server  *web.Settings     `mapstructure:"server"`
+	Auth    *auth.Settings    `mapstructure:"auth"`
+	Users   *users.Settings   `mapstructure:"users"`
 }
 
 type KeyableSetting interface {
@@ -28,6 +32,14 @@ func (s *Settings) Keys() []string {
 	for _, k := range s.Server.Keys() {
 		keys = append(keys, "server."+k)
 	}
+
+	for _, k := range s.Auth.Keys() {
+		keys = append(keys, "auth."+k)
+	}
+
+	for _, k := range s.Users.Keys() {
+		keys = append(keys, "users."+k)
+	}
 	return keys
 }
 
@@ -35,6 +47,7 @@ func Load(config *Config) *Settings {
 	settings := &Settings{
 		Storage: storage.DefaultSettings(),
 		Server:  web.DefaultSettings(),
+		Auth:    auth.DefaultSettings(),
 	}
 
 	if err := config.Unmarshal(settings); err != nil {

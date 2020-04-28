@@ -1,0 +1,201 @@
+zones:
+  internal:
+    hostnames:
+      - localhost
+      - uaa
+
+issuer.uri: http://uaa:8080
+
+scim:
+  groups:
+    zones.read: Read identity zones
+    zones.write: Create and update identity zones
+    idps.read: Retrieve identity providers
+    idps.write: Create and update identity providers
+    clients.admin: Create, modify and delete OAuth clients
+    clients.write: Create and modify OAuth clients
+    clients.read: Read information about OAuth clients
+    clients.secret: Change the password of an OAuth client
+    scim.write: Create, modify and delete SCIM entities, i.e. users and groups
+    scim.read: Read all SCIM entities, i.e. users and groups
+    scim.create: Create users
+    scim.userids: Read user IDs and retrieve users by ID
+    scim.zones: Control a user's ability to manage a zone
+    scim.invite: Send invitations to users
+    password.write: Change your password
+    oauth.approval: Manage approved scopes
+    oauth.login: Authenticate users outside of the UAA
+    openid: Access profile information, i.e. email, first and last name, and phone number
+    groups.update: Update group information and memberships
+    uaa.user: Act as a user in the UAA
+    uaa.resource: Serve resources protected by the UAA
+    uaa.admin: Act as an administrator throughout the UAA
+    uaa.none: Forbid acting as a user
+    uaa.offline_token: Allow offline access
+  users:
+    - testy|testy|testy@test.org|testy|testy|
+    - manager|manager|manager@test.org|manager|manager|
+    - developer|developer|developer@test.org|developer|developer|
+    - auditor|auditor|auditor@test.org|auditor|auditor|
+oauth:
+  user:
+    authorities:
+      - openid
+      - scim.me
+      # - cloud_controller.read
+      # - cloud_controller.write
+      # - cloud_controller_service_permissions.read
+      - password.write
+      - scim.userids
+      - uaa.user
+      - uaa.admin
+      - clients.admin
+      - clients.read
+      - clients.write
+      - approvals.me
+      - oauth.approvals
+      - profile
+      - roles
+      - user_attributes
+      - uaa.offline_token
+  clients:
+    admin-client:
+      id: admin-client
+      secret: adminclientsecret
+      scope: uaa.none,oauth.approvals
+      authorized-grant-types: client_credentials
+      authorities: uaa.admin,clients.write,clients.admin,zones.uaa.admin,clients.read
+    payment:
+      id: payment
+      secret: '1234'
+      scope: uaa.user,refresh_token
+      authorized-grant-types: password,refresh_token
+
+
+encryption:
+  active_key_label: CHANGE-THIS-KEY
+  encryption_keys:
+  - label: CHANGE-THIS-KEY
+    passphrase: CHANGEME
+# Default token signing key. Each installation MUST provide a unique key
+# in order for tokens to be usable only on that installation.
+#
+jwt:
+  token:
+    verification-key: |
+      -----BEGIN PUBLIC KEY-----
+      MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAx4DV2R7rcNVB6xvblWz2
+      rvEygw437gwy0c7FUHVjtJPhdhLbhcjufMM0s7geKMVCcu01bsOlxSMJJwj5ALo7
+      If/po/pbCRc6GiQHlIVyZHozvvM57GT6dUYbyWgIKVrs5Nlv8sEjk6ynvdkRJo5k
+      2ZSpFXE7CWMezfwQrlmTU4i6QCbXy1WRcmJ9HqeUJZ+J6fdNx/k1XQsxWWoUiD+q
+      RtwcFwK1FAhhp9Un/RthtobxlrMLexRDxfqb4hANV+fJHngUhXRfi3mR7mWasrU+
+      pRbUnZSZR0zu8jdCFqH3tGzxfGK2mGQGRhJO3PJzR/ZpuRKNBgmdLwPgPYQ9lcIR
+      owIDAQAB
+      -----END PUBLIC KEY-----
+    signing-key: |
+      -----BEGIN RSA PRIVATE KEY-----
+      MIIEogIBAAKCAQEAx4DV2R7rcNVB6xvblWz2rvEygw437gwy0c7FUHVjtJPhdhLb
+      hcjufMM0s7geKMVCcu01bsOlxSMJJwj5ALo7If/po/pbCRc6GiQHlIVyZHozvvM5
+      7GT6dUYbyWgIKVrs5Nlv8sEjk6ynvdkRJo5k2ZSpFXE7CWMezfwQrlmTU4i6QCbX
+      y1WRcmJ9HqeUJZ+J6fdNx/k1XQsxWWoUiD+qRtwcFwK1FAhhp9Un/RthtobxlrML
+      exRDxfqb4hANV+fJHngUhXRfi3mR7mWasrU+pRbUnZSZR0zu8jdCFqH3tGzxfGK2
+      mGQGRhJO3PJzR/ZpuRKNBgmdLwPgPYQ9lcIRowIDAQABAoIBAASeMdUFxzNkbFMx
+      4OJTlF42TRIFiTvkYmTC4YRcQ0ORzL078ILnRMX0isrCL0iIUGJypTL8KmEmz3Zs
+      2b6vkODXmKPoDqVmOT0Tqm1ArYYv4fTAko2rRLTkO45s7wtuBF/DvLikydsIOxXE
+      6YW39BOpQkSxy0kLV1IzTHuMrUFYtWhLRPmIoe/rJQgs3r4urAL956MZnuraCOLl
+      qZdUF92pU32e0tIuBvK80Ce1lNHgUXnuD5MLK4Juwsj/ViOkTuaeClQTtEyuM9Lq
+      5WKhuOYP0s4O0K0sikpfCT64tFrcyYuH0sBMdCCUgkYRUHJ71YM8BzfcvcRjxYWr
+      FjuF8/kCgYEA5XGE1/01t9MZuo3+/EEENGLQIMZnhO25k7UPSMzVL1skzyBQDOmE
+      99yM2o+xBNrMzwLTtb0qo2hjArQEsuCaihtppxBz3jYvqcgryIgGmWJidFCj7KRw
+      jMeEu//l7DV7tkGxwo4YfDWJQ7XaM7FUwA2qQWSr2KkEpd9npjxq9ecCgYEA3pgu
+      BRHccA7RHyg3X4Uw0UgNlnoEGf7ElODYRDlcGm9P1CUNX0ODuqrAz54Ppwhsctza
+      L+xc9f2xt+8UGwSkZoNRxQVH/lClyu9CYFZfEqZRAKMRoFGnUPgEGMbsIH6Ur3J8
+      l4rZ5VrZOfgU9Ibj0KPkFaXCvsOAVvtJqlCz1uUCgYAZVF3pBlAe2hQ2DyT+LiNL
+      sTju1VhqSWA6WTu1ur8yOiqnHxcXRdRjFJsMKd7N/WWs2NAMeTSy03xSuRLnuHn3
+      Ey2nvt47wtmiMbH7smCgIEdkNd7S6hhuwjv6ETcNy527sibwpoU3eSWNLw9Gs6X6
+      iceo7nc2NPqJYU9s/7CDMwKBgFHeVs62iwUL7g4vlG4lZpcSkSzPI8ML2PGI4QH2
+      ttFiL1IvboOjKUf2lYPG9qrQhlKYuAb4QBiZfkvQOuzVAEJT+jckgh4fO1swNJGK
+      Mt2BHjnFwC3e2lMFZTxXrXEmHTmKOhjikNGyYELZ45ssIY4TOUhc9wuCjClxst5Z
+      YEuhAoGAYQ4NP4yXiKNPfMY1GS0eQOp9GwEEi8UIKrvLaiDH657VlvNcKE5obOdQ
+      JwxjMk67tMmnHG2Kuzv0TNIa6QOXohZaRVdEj2w6kq1jBKPWPKMy01vqaKqDt8db
+      uZJgVyqobR9IAP91z8l8xJgcIvOhy9r+JFEuaas7hIwEWWMeaaI=
+      -----END RSA PRIVATE KEY-----
+    policy:
+      # Will override global validity policies for the default zone only.
+      accessTokenValiditySeconds: 3600
+      refreshTokenValiditySeconds: 3600
+      activeKeyId: key-id-1
+      keys:
+        key-id-1:
+          signingKey: |
+            -----BEGIN RSA PRIVATE KEY-----
+            MIIEogIBAAKCAQEAx4DV2R7rcNVB6xvblWz2rvEygw437gwy0c7FUHVjtJPhdhLb
+            hcjufMM0s7geKMVCcu01bsOlxSMJJwj5ALo7If/po/pbCRc6GiQHlIVyZHozvvM5
+            7GT6dUYbyWgIKVrs5Nlv8sEjk6ynvdkRJo5k2ZSpFXE7CWMezfwQrlmTU4i6QCbX
+            y1WRcmJ9HqeUJZ+J6fdNx/k1XQsxWWoUiD+qRtwcFwK1FAhhp9Un/RthtobxlrML
+            exRDxfqb4hANV+fJHngUhXRfi3mR7mWasrU+pRbUnZSZR0zu8jdCFqH3tGzxfGK2
+            mGQGRhJO3PJzR/ZpuRKNBgmdLwPgPYQ9lcIRowIDAQABAoIBAASeMdUFxzNkbFMx
+            4OJTlF42TRIFiTvkYmTC4YRcQ0ORzL078ILnRMX0isrCL0iIUGJypTL8KmEmz3Zs
+            2b6vkODXmKPoDqVmOT0Tqm1ArYYv4fTAko2rRLTkO45s7wtuBF/DvLikydsIOxXE
+            6YW39BOpQkSxy0kLV1IzTHuMrUFYtWhLRPmIoe/rJQgs3r4urAL956MZnuraCOLl
+            qZdUF92pU32e0tIuBvK80Ce1lNHgUXnuD5MLK4Juwsj/ViOkTuaeClQTtEyuM9Lq
+            5WKhuOYP0s4O0K0sikpfCT64tFrcyYuH0sBMdCCUgkYRUHJ71YM8BzfcvcRjxYWr
+            FjuF8/kCgYEA5XGE1/01t9MZuo3+/EEENGLQIMZnhO25k7UPSMzVL1skzyBQDOmE
+            99yM2o+xBNrMzwLTtb0qo2hjArQEsuCaihtppxBz3jYvqcgryIgGmWJidFCj7KRw
+            jMeEu//l7DV7tkGxwo4YfDWJQ7XaM7FUwA2qQWSr2KkEpd9npjxq9ecCgYEA3pgu
+            BRHccA7RHyg3X4Uw0UgNlnoEGf7ElODYRDlcGm9P1CUNX0ODuqrAz54Ppwhsctza
+            L+xc9f2xt+8UGwSkZoNRxQVH/lClyu9CYFZfEqZRAKMRoFGnUPgEGMbsIH6Ur3J8
+            l4rZ5VrZOfgU9Ibj0KPkFaXCvsOAVvtJqlCz1uUCgYAZVF3pBlAe2hQ2DyT+LiNL
+            sTju1VhqSWA6WTu1ur8yOiqnHxcXRdRjFJsMKd7N/WWs2NAMeTSy03xSuRLnuHn3
+            Ey2nvt47wtmiMbH7smCgIEdkNd7S6hhuwjv6ETcNy527sibwpoU3eSWNLw9Gs6X6
+            iceo7nc2NPqJYU9s/7CDMwKBgFHeVs62iwUL7g4vlG4lZpcSkSzPI8ML2PGI4QH2
+            ttFiL1IvboOjKUf2lYPG9qrQhlKYuAb4QBiZfkvQOuzVAEJT+jckgh4fO1swNJGK
+            Mt2BHjnFwC3e2lMFZTxXrXEmHTmKOhjikNGyYELZ45ssIY4TOUhc9wuCjClxst5Z
+            YEuhAoGAYQ4NP4yXiKNPfMY1GS0eQOp9GwEEi8UIKrvLaiDH657VlvNcKE5obOdQ
+            JwxjMk67tMmnHG2Kuzv0TNIa6QOXohZaRVdEj2w6kq1jBKPWPKMy01vqaKqDt8db
+            uZJgVyqobR9IAP91z8l8xJgcIvOhy9r+JFEuaas7hIwEWWMeaaI=
+            -----END RSA PRIVATE KEY-----
+      # Sets the default validity for all zones
+      global:
+        accessTokenValiditySeconds: 3600
+        refreshTokenValiditySeconds: 3600
+    # This is a feature flag to turn on/off the refresh token issuance behavior. If set to true, the refresh token is only granted to clients with a scope of refresh_token for offline access.
+    refresh:
+      restrict_grant: true
+      unique: false
+      format: jwt
+
+login:
+  serviceProviderKey: |
+    -----BEGIN RSA PRIVATE KEY-----
+    MIICXAIBAAKBgQC9dqUPKD2ZaOpxwjQKsMNMycygWQHijA4irOaoxLExl44QqYlm
+    g5rG58Ny1e1A9Ng/VhtpePS7H4qWkzCxOSqdqX/yY5AqmicGpQuv70izjI2jIsw4
+    kUtQ1FWlBorAUAZ53u5MWqoL6cV9PqBnMVujiT3e2LWk0HKX+7bP5kQRjwIDAQAB
+    AoGBAKuY8sQ4oRn6ASUJTJNGJ4y71R6Bnwht6zuSt9KxWv9ckaobsztrBNsT/Fxc
+    z2aem+E5fthXWejFF4NrSpWo/iOA5tMo5xU23Z7mWwEjGq+t1Ht+CfmH4dF2I15v
+    giMgdE8biw00rBolvA1CclknlvUK9nmCIMnAj8eA4DCVoBghAkEA4JPHFOJgqMdq
+    3+xaxGJ/7JtfWSEBPmzmtaiJUMp8LP/b6/Pyukl4dgWNJQhYmEGaBAqxVPz8Amfv
+    xSwOkW0SsQJBANf5HKPwc97tjzyjH62+jMdPMo43zQHiXRhYenKGCzREUsayZANa
+    M8sEDj6x8vGwGwxYpoKNHw7xp64DvQGh+D8CQBpgIMSKJdIMwbeU2cAw1VdjlBoy
+    ryO2xI3XQnFTpqveTOT0XLCWSmiKFF6iEU2ofr80xkj2AV8C9/0PRJK93bECQGM/
+    qma4KDdpCir+d59bcsxg28W5ZO+Zu9hlSJf6e4mgYD3JWuajfCuuiHFNS2y/1h49
+    Wv+hpIU0ji8Mrr3iVfcCQGxBM/RNHBVGoczkbrFh7ZRTPAw1nAFwz/s9Ah/GKyez
+    xMnTGk+W0mpVawaPN2x2Wxq/lGkOyCkcsnDJVZZRZVE=
+    -----END RSA PRIVATE KEY-----
+  serviceProviderKeyPassword: password
+  serviceProviderCertificate: |
+    -----BEGIN CERTIFICATE-----
+    MIICXTCCAcYCCQDzMC8h8TvieTANBgkqhkiG9w0BAQsFADBzMQswCQYDVQQGEwJC
+    RzELMAkGA1UECAwCU0YxDjAMBgNVBAcMBVNvZmlhMQwwCgYDVQQKDANTQVAxDDAK
+    BgNVBAsMA0RldjEYMBYGA1UEAwwPaHR0cDovL3VhYTo4MDgwMREwDwYJKoZIhvcN
+    AQkBFgJrazAeFw0xODExMTIyMTQ5MTlaFw0xOTExMTIyMTQ5MTlaMHMxCzAJBgNV
+    BAYTAkJHMQswCQYDVQQIDAJTRjEOMAwGA1UEBwwFU29maWExDDAKBgNVBAoMA1NB
+    UDEMMAoGA1UECwwDRGV2MRgwFgYDVQQDDA9odHRwOi8vdWFhOjgwODAxETAPBgkq
+    hkiG9w0BCQEWAmtrMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC9dqUPKD2Z
+    aOpxwjQKsMNMycygWQHijA4irOaoxLExl44QqYlmg5rG58Ny1e1A9Ng/VhtpePS7
+    H4qWkzCxOSqdqX/yY5AqmicGpQuv70izjI2jIsw4kUtQ1FWlBorAUAZ53u5MWqoL
+    6cV9PqBnMVujiT3e2LWk0HKX+7bP5kQRjwIDAQABMA0GCSqGSIb3DQEBCwUAA4GB
+    AAsvwAjTtmvpE4isDLhzC/wT+wjhEMCIJ0qAjWkNqKIoPOYakM1JgUDFdE6xR64E
+    kyin6IhVfU2ahUoFAdJAgGEFPyXdNJUhLJLIcUD8VRS2xv8jkH5alBEnUBTkYE3E
+    OZopNMKstmmFUgAMZR++CWmbazATLzQUf8uYAlMt8plg
+    -----END CERTIFICATE-----
