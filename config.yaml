@@ -15,3 +15,6 @@ auth:
 users:
   file_name: users.csv
   file_location: "."
+cleaner:
+  interval: 10s
+  keep_transaction_for: 1h

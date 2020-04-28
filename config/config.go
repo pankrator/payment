@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/pankrator/payment/services"
+
 	"github.com/pankrator/payment/auth"
 	"github.com/pankrator/payment/storage"
 	"github.com/pankrator/payment/users"
@@ -13,10 +15,11 @@ import (
 )
 
 type Settings struct {
-	Storage *storage.Settings `mapstructure:"storage"`
-	Server  *web.Settings     `mapstructure:"server"`
-	Auth    *auth.Settings    `mapstructure:"auth"`
-	Users   *users.Settings   `mapstructure:"users"`
+	Storage *storage.Settings         `mapstructure:"storage"`
+	Server  *web.Settings             `mapstructure:"server"`
+	Auth    *auth.Settings            `mapstructure:"auth"`
+	Users   *users.Settings           `mapstructure:"users"`
+	Cleaner *services.CleanerSettings `mapstructure:"cleaner"`
 }
 
 type KeyableSetting interface {
@@ -40,6 +43,11 @@ func (s *Settings) Keys() []string {
 	for _, k := range s.Users.Keys() {
 		keys = append(keys, "users."+k)
 	}
+
+	for _, k := range s.Cleaner.Keys() {
+		keys = append(keys, "cleaner."+k)
+	}
+
 	return keys
 }
 

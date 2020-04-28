@@ -31,7 +31,8 @@ type App struct {
 	UaaClient  *uaa.UAAClient
 	Settings   *config.Settings
 
-	merchantService MerchantService
+	transactionCleaner *services.TransactionClenaer
+	merchantService    MerchantService
 }
 
 func New(configFileLocation string) *App {
@@ -69,6 +70,8 @@ func New(configFileLocation string) *App {
 	paymentService := services.NewPaymentService(repository)
 	merchantService := services.NewMerchantService(repository)
 
+	transactionCleaner := services.NewTransactionCleaner(settings.Cleaner, repository)
+
 	api := &web.Api{
 		Controllers: []web.Controller{
 			api.NewPaymentController(paymentService),
@@ -80,11 +83,12 @@ func New(configFileLocation string) *App {
 
 	server := web.NewServer(settings.Server, api)
 	return &App{
-		Server:          server,
-		Repository:      repository,
-		UaaClient:       uaaClient,
-		Settings:        settings,
-		merchantService: merchantService,
+		Server:             server,
+		Repository:         repository,
+		UaaClient:          uaaClient,
+		Settings:           settings,
+		merchantService:    merchantService,
+		transactionCleaner: transactionCleaner,
 	}
 }
 
@@ -172,5 +176,7 @@ func (a *App) Start(ctx context.Context) {
 		usersByType[users.Merchant],
 		merchantGroups,
 	)
+
+	a.transactionCleaner.Start(ctx)
 	a.Server.Run(ctx)
 }

@@ -82,6 +82,8 @@ func (s *Storage) Create(object model.Object) (model.Object, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// TODO: No way found to provide context via Gorm?!
 	err = s.DB.Create(dbModel).Error
 	if err != nil {
 		// TODO: Wrap storage error
@@ -133,7 +135,16 @@ func (s *Storage) DeleteAll(typee string) error {
 		return fmt.Errorf("no such model found %s", typee)
 	}
 	dbModel := dbModelBlueprint()
-	return s.Delete(dbModel).Error
+	return s.DB.Delete(dbModel).Error
+}
+
+func (s *Storage) Delete(typee string, condition string, args ...interface{}) error {
+	dbModelBlueprint, found := s.models[typee]
+	if !found {
+		return fmt.Errorf("no such model found %s", typee)
+	}
+	dbModel := dbModelBlueprint()
+	return s.DB.Where(condition, args...).Delete(dbModel).Error
 }
 
 func (s *Storage) Transaction(f func(s storage.Storage) error) error {
