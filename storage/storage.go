@@ -19,6 +19,7 @@ type Storage interface {
 	DeleteAll(typee string) error
 	Delete(typee string, condition string, args ...interface{}) error
 	Get(typee string, id string) (model.Object, error)
+	List(typee string) ([]model.Object, error)
 	Count(typee string, condition string, args ...interface{}) (int, error)
 
 	Transaction(f func(s Storage) error) error

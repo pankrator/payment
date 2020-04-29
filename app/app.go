@@ -169,7 +169,7 @@ func (a *App) Start(ctx context.Context, wg *sync.WaitGroup, cancel context.Canc
 	usersByType := splitUsersByType(reader)
 
 	adminGroups := []string{"merchant.read", "merchant.write", "merchant.delete", "transaction.write", "transaction.read"}
-	merchantGroups := []string{"transaction.write", "transaction.read"}
+	merchantGroups := []string{"transaction.read"}
 
 	a.initUsers(
 		ctx,

@@ -80,6 +80,19 @@ type FakeStorage struct {
 		result1 model.Object
 		result2 error
 	}
+	ListStub        func(string) ([]model.Object, error)
+	listMutex       sync.RWMutex
+	listArgsForCall []struct {
+		arg1 string
+	}
+	listReturns struct {
+		result1 []model.Object
+		result2 error
+	}
+	listReturnsOnCall map[int]struct {
+		result1 []model.Object
+		result2 error
+	}
 	OpenStub        func(func(string, string) (*sql.DB, error)) error
 	openMutex       sync.RWMutex
 	openArgsForCall []struct {
@@ -454,6 +467,69 @@ func (fake *FakeStorage) GetReturnsOnCall(i int, result1 model.Object, result2 e
 	}{result1, result2}
 }
 
+func (fake *FakeStorage) List(arg1 string) ([]model.Object, error) {
+	fake.listMutex.Lock()
+	ret, specificReturn := fake.listReturnsOnCall[len(fake.listArgsForCall)]
+	fake.listArgsForCall = append(fake.listArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("List", []interface{}{arg1})
+	fake.listMutex.Unlock()
+	if fake.ListStub != nil {
+		return fake.ListStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.listReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeStorage) ListCallCount() int {
+	fake.listMutex.RLock()
+	defer fake.listMutex.RUnlock()
+	return len(fake.listArgsForCall)
+}
+
+func (fake *FakeStorage) ListCalls(stub func(string) ([]model.Object, error)) {
+	fake.listMutex.Lock()
+	defer fake.listMutex.Unlock()
+	fake.ListStub = stub
+}
+
+func (fake *FakeStorage) ListArgsForCall(i int) string {
+	fake.listMutex.RLock()
+	defer fake.listMutex.RUnlock()
+	argsForCall := fake.listArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeStorage) ListReturns(result1 []model.Object, result2 error) {
+	fake.listMutex.Lock()
+	defer fake.listMutex.Unlock()
+	fake.ListStub = nil
+	fake.listReturns = struct {
+		result1 []model.Object
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeStorage) ListReturnsOnCall(i int, result1 []model.Object, result2 error) {
+	fake.listMutex.Lock()
+	defer fake.listMutex.Unlock()
+	fake.ListStub = nil
+	if fake.listReturnsOnCall == nil {
+		fake.listReturnsOnCall = make(map[int]struct {
+			result1 []model.Object
+			result2 error
+		})
+	}
+	fake.listReturnsOnCall[i] = struct {
+		result1 []model.Object
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeStorage) Open(arg1 func(string, string) (*sql.DB, error)) error {
 	fake.openMutex.Lock()
 	ret, specificReturn := fake.openReturnsOnCall[len(fake.openArgsForCall)]
@@ -649,6 +725,8 @@ func (fake *FakeStorage) Invocations() map[string][][]interface{} {
 	defer fake.deleteAllMutex.RUnlock()
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
+	fake.listMutex.RLock()
+	defer fake.listMutex.RUnlock()
 	fake.openMutex.RLock()
 	defer fake.openMutex.RUnlock()
 	fake.saveMutex.RLock()

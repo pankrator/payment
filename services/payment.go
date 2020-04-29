@@ -76,6 +76,10 @@ func (ps *PaymentService) Create(transaction *model.Transaction) (model.Object, 
 	}
 }
 
+func (ps *PaymentService) List() ([]model.Object, error) {
+	return ps.repository.List(model.TransactionObjectType)
+}
+
 func (ps *PaymentService) chargeTransaction(transaction *model.Transaction) (model.Object, error) {
 	var result model.Object
 	err := ps.repository.Transaction(func(tx storage.Storage) error {

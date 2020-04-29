@@ -35,9 +35,15 @@ func (m *Auth) Execute(rw http.ResponseWriter, req *http.Request, next http.Hand
 	next.ServeHTTP(rw, req)
 }
 
-func (m *Auth) Matcher() web.Endpoint {
-	return web.Endpoint{
-		Path:   "/payment",
-		Method: http.MethodPost,
+func (m *Auth) Matchers() []web.Endpoint {
+	return []web.Endpoint{
+		{
+			Path:   "/payment",
+			Method: http.MethodPost,
+		},
+		{
+			Path:   "/payment",
+			Method: http.MethodGet,
+		},
 	}
 }

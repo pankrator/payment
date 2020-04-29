@@ -1,18 +1,24 @@
 package web
 
-import "net/http"
+import (
+	"net/http"
+	"strings"
+)
 
 type Filter interface {
 	Execute(http.ResponseWriter, *http.Request, http.HandlerFunc)
-	Matcher() Endpoint
+	Matchers() []Endpoint
 }
 
 func MatchFilters(endpoint Endpoint, filters []Filter) []Filter {
 	matchingFilters := make([]Filter, 0)
 	for _, f := range filters {
-		fEndpoint := f.Matcher()
-		if endpoint.Path == fEndpoint.Path && endpoint.Method == fEndpoint.Method {
-			matchingFilters = append(matchingFilters, f)
+		fEndpoints := f.Matchers()
+		for _, fEndpoint := range fEndpoints {
+			if strings.HasPrefix(endpoint.Path, fEndpoint.Path) && endpoint.Method == fEndpoint.Method {
+				matchingFilters = append(matchingFilters, f)
+				break
+			}
 		}
 	}
 	return matchingFilters

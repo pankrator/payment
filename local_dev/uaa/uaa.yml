@@ -168,7 +168,7 @@ jwt:
         refreshTokenValiditySeconds: 3600
     # This is a feature flag to turn on/off the refresh token issuance behavior. If set to true, the refresh token is only granted to clients with a scope of refresh_token for offline access.
     refresh:
-      restrict_grant: true
+      restrict_grant: false
       unique: false
       format: jwt
 

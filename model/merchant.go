@@ -5,12 +5,12 @@ import "github.com/pankrator/payment/users"
 const MerchantType string = "Merchant"
 
 type Merchant struct {
-	UUID                string
-	Name                string
-	Description         string
-	Email               string
-	Status              bool
-	TotalTransactionSum int64
+	UUID                string `json:"uuid"`
+	Name                string `json:"name"`
+	Description         string `json:"description"`
+	Email               string `json:"email"`
+	Status              bool   `json:"status"`
+	TotalTransactionSum int64  `json:"total_transaction_sum"`
 }
 
 func (m *Merchant) GetType() string {

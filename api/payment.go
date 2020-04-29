@@ -11,6 +11,7 @@ import (
 
 type PaymentService interface {
 	Create(*model.Transaction) (model.Object, error)
+	List() ([]model.Object, error)
 }
 
 type PaymentController struct {
@@ -40,6 +41,18 @@ func (c *PaymentController) payment(rw http.ResponseWriter, req *web.Request) {
 	web.WriteJSON(rw, http.StatusCreated, result)
 }
 
+func (c *PaymentController) list(rw http.ResponseWriter, req *web.Request) {
+	result, err := c.paymentService.List()
+	if err != nil {
+		web.WriteError(rw, &web.HTTPError{
+			StatusCode:  http.StatusBadRequest,
+			Description: err.Error(),
+		})
+		return
+	}
+	web.WriteJSON(rw, http.StatusCreated, result)
+}
+
 func (c *PaymentController) Routes() []web.Route {
 	return []web.Route{
 		{
@@ -54,6 +67,16 @@ func (c *PaymentController) Routes() []web.Route {
 				return []string{"transaction.write"}
 			},
 			Handler: c.payment,
+		},
+		{
+			Endpoint: web.Endpoint{
+				Method: http.MethodGet,
+				Path:   "/payment",
+			},
+			Scopes: func() []string {
+				return []string{"transaction.read"}
+			},
+			Handler: c.list,
 		},
 	}
 }

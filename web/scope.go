@@ -36,8 +36,9 @@ func ScopeWrapper(handler HandlerFunc, scopesFunc func() []string) HandlerFunc {
 			if !scopeFound {
 				WriteError(rw, &HTTPError{
 					StatusCode:  http.StatusForbidden,
-					Description: fmt.Sprintf("User scopes [%s] does not contain required scope transaction.write", strings.Join(user.Scopes, ",")),
+					Description: fmt.Sprintf("User scopes [%s] does not contain required scope %s", strings.Join(user.Scopes, ","), requiredScope),
 				})
+				return
 			}
 		}
 

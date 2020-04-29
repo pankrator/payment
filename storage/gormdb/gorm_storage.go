@@ -22,17 +22,21 @@ var (
 	basepath   = path.Dir(b)
 )
 
+type modelData struct {
+	singleModel func() Model
+}
+
 type Storage struct {
 	*gorm.DB
 	settings *storage.Settings
 
-	models map[string]func() Model
+	models map[string]modelData
 }
 
 func New(s *storage.Settings) *Storage {
 	return &Storage{
 		settings: s,
-		models:   make(map[string]func() Model),
+		models:   make(map[string]modelData),
 	}
 }
 
@@ -61,8 +65,12 @@ func (s *Storage) Open(connectFunc func(driver, url string) (*sql.DB, error)) er
 	s.DB = db
 	s.configure()
 
-	s.registerModels(model.TransactionObjectType, func() Model { return &Transaction{} })
-	s.registerModels(model.MerchantType, func() Model { return &Merchant{} })
+	s.registerModels(model.TransactionObjectType, modelData{
+		singleModel: func() Model { return &Transaction{} },
+	})
+	s.registerModels(model.MerchantType, modelData{
+		singleModel: func() Model { return &Merchant{} },
+	})
 
 	if err := s.migrate(dbURI); err != nil {
 		return err
@@ -78,7 +86,7 @@ func (s *Storage) Create(object model.Object) (model.Object, error) {
 	if !found {
 		return nil, fmt.Errorf("no such model found %s", object.GetType())
 	}
-	dbModel, err := dbModelBlueprint().FromObject(object)
+	dbModel, err := dbModelBlueprint.singleModel().FromObject(object)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +106,7 @@ func (s *Storage) Save(object model.Object) error {
 	if !found {
 		return fmt.Errorf("no such model found %s", object.GetType())
 	}
-	dbModel, err := dbModelBlueprint().FromObject(object)
+	dbModel, err := dbModelBlueprint.singleModel().FromObject(object)
 	if err != nil {
 		return err
 	}
@@ -110,7 +118,7 @@ func (s *Storage) Get(typee string, id string) (model.Object, error) {
 	if !found {
 		return nil, fmt.Errorf("no such model found %s", typee)
 	}
-	dbModel := dbModelBlueprint()
+	dbModel := dbModelBlueprint.singleModel()
 	result := s.Where("uuid = ?", id).Find(dbModel)
 	if result.RecordNotFound() {
 		return nil, storage.ErrNotFound
@@ -118,12 +126,41 @@ func (s *Storage) Get(typee string, id string) (model.Object, error) {
 	return dbModel.ToObject(), result.Error
 }
 
+func (s *Storage) List(typee string) ([]model.Object, error) {
+	dbModelBlueprint, found := s.models[typee]
+	if !found {
+		return nil, fmt.Errorf("no such model found %s", typee)
+	}
+	dbModel := dbModelBlueprint.singleModel()
+	tableName := s.DB.NewScope(dbModel).TableName()
+	rows, err := s.DB.Table(tableName).Select("*").Rows()
+	if err != nil {
+		return nil, err
+	}
+
+	return s.rowsToObject(rows, dbModelBlueprint.singleModel)
+}
+
+func (s *Storage) rowsToObject(rows *sql.Rows, modelGenerator func() Model) ([]model.Object, error) {
+	result := make([]model.Object, 0)
+	defer rows.Close()
+	for rows.Next() {
+		r := modelGenerator()
+		err := s.DB.ScanRows(rows, r)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, r.ToObject())
+	}
+	return result, nil
+}
+
 func (s *Storage) Count(typee string, condition string, args ...interface{}) (int, error) {
 	dbModelBlueprint, found := s.models[typee]
 	if !found {
 		return 0, fmt.Errorf("no such model found %s", typee)
 	}
-	dbModel := dbModelBlueprint()
+	dbModel := dbModelBlueprint.singleModel()
 	var count int
 	result := s.New().Model(dbModel).Where(condition, args...).Count(&count)
 	return count, result.Error
@@ -134,7 +171,7 @@ func (s *Storage) DeleteAll(typee string) error {
 	if !found {
 		return fmt.Errorf("no such model found %s", typee)
 	}
-	dbModel := dbModelBlueprint()
+	dbModel := dbModelBlueprint.singleModel()
 	return s.DB.Delete(dbModel).Error
 }
 
@@ -143,7 +180,7 @@ func (s *Storage) Delete(typee string, condition string, args ...interface{}) er
 	if !found {
 		return fmt.Errorf("no such model found %s", typee)
 	}
-	dbModel := dbModelBlueprint()
+	dbModel := dbModelBlueprint.singleModel()
 	return s.DB.Where(condition, args...).Delete(dbModel).Error
 }
 
@@ -156,7 +193,7 @@ func (s *Storage) Transaction(f func(s storage.Storage) error) error {
 	})
 }
 
-func (s *Storage) registerModels(typee string, modelProvider func() Model) {
+func (s *Storage) registerModels(typee string, modelProvider modelData) {
 	s.models[typee] = modelProvider
 }
 
@@ -178,10 +215,10 @@ func (s *Storage) migrate(dbURI string) error {
 
 	err = s.DB.Transaction(func(tx *gorm.DB) error {
 		for _, m := range s.models {
-			tx.AutoMigrate(m())
+			tx.AutoMigrate(m.singleModel())
 		}
 		for _, m := range s.models {
-			model := m()
+			model := m.singleModel()
 			if err := model.InitSQL(tx); err != nil {
 				return err
 			}
