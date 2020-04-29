@@ -55,5 +55,6 @@ func (tc *TransactionClenaer) Start(ctx context.Context) {
 }
 
 func (tc *TransactionClenaer) run(ctx context.Context) error {
-	return tc.repository.Delete(model.TransactionObjectType, "created_at < ?", time.Now().Add(-tc.settings.KeepTransactionsFor))
+	log.Printf("Will clean transactions older than %s", time.Now().Add(-tc.settings.KeepTransactionsFor).Format(time.RFC3339))
+	return tc.repository.Delete(model.TransactionObjectType, "created_at < ?", time.Now().Add(-tc.settings.KeepTransactionsFor).Format(time.RFC3339))
 }

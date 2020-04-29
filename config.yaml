@@ -17,4 +17,4 @@ users:
   file_location: "."
 cleaner:
   interval: 10s
-  keep_transaction_for: 1h
+  keep_transactions_for: 1h
