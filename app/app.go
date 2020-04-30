@@ -81,6 +81,7 @@ func New(configFileLocation string) *App {
 		},
 		Filters: []web.Filter{
 			authFilter,
+			filter.NewQueryFilter(repository),
 		},
 	}
 

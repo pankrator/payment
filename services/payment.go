@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/pankrator/payment/query"
+
 	"github.com/gofrs/uuid"
 	"github.com/pankrator/payment/model"
 	"github.com/pankrator/payment/storage"
@@ -76,8 +78,8 @@ func (ps *PaymentService) Create(transaction *model.Transaction) (model.Object, 
 	}
 }
 
-func (ps *PaymentService) List() ([]model.Object, error) {
-	return ps.repository.List(model.TransactionObjectType)
+func (ps *PaymentService) List(q []query.Query) ([]model.Object, error) {
+	return ps.repository.List(model.TransactionObjectType, q...)
 }
 
 func (ps *PaymentService) chargeTransaction(transaction *model.Transaction) (model.Object, error) {

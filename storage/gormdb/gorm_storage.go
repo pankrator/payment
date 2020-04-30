@@ -8,6 +8,7 @@ import (
 	"runtime"
 
 	"github.com/pankrator/payment/model"
+	"github.com/pankrator/payment/query"
 	"github.com/pankrator/payment/storage"
 
 	"github.com/golang-migrate/migrate"
@@ -126,19 +127,57 @@ func (s *Storage) Get(typee string, id string) (model.Object, error) {
 	return dbModel.ToObject(), result.Error
 }
 
-func (s *Storage) List(typee string) ([]model.Object, error) {
+func (s *Storage) GetBy(typee string, condition string, args ...interface{}) (model.Object, error) {
+	dbModelBlueprint, found := s.models[typee]
+	if !found {
+		return nil, fmt.Errorf("no such model found %s", typee)
+	}
+	dbModel := dbModelBlueprint.singleModel()
+	result := s.Where(condition, args...).First(dbModel)
+	if result.RecordNotFound() {
+		return nil, storage.ErrNotFound
+	}
+	return dbModel.ToObject(), result.Error
+}
+
+func (s *Storage) List(typee string, q ...query.Query) ([]model.Object, error) {
 	dbModelBlueprint, found := s.models[typee]
 	if !found {
 		return nil, fmt.Errorf("no such model found %s", typee)
 	}
 	dbModel := dbModelBlueprint.singleModel()
 	tableName := s.DB.NewScope(dbModel).TableName()
-	rows, err := s.DB.Table(tableName).Select("*").Rows()
+	db := s.DB.Table(tableName)
+	whereClause, params := s.buildWhere(typee, q)
+	if len(params) > 0 {
+		db = db.Where(whereClause, params)
+	}
+	rows, err := db.Select("*").Rows()
 	if err != nil {
 		return nil, err
 	}
 
 	return s.rowsToObject(rows, dbModelBlueprint.singleModel)
+}
+
+func (s *Storage) buildWhere(typee string, q []query.Query) (string, []string) {
+	if len(q) < 1 {
+		return "", nil
+	}
+
+	qq := make([]query.Query, 0)
+	for _, iq := range q {
+		if iq.Type == typee {
+			qq = append(qq, iq)
+		}
+	}
+	result := ""
+	params := make([]string, 0, len(qq))
+	for _, qi := range qq {
+		result += fmt.Sprintf("%s %s ? AND ", qi.Key, qi.Operation)
+		params = append(params, qi.Value)
+	}
+	return result[:len(result)-5], params
 }
 
 func (s *Storage) rowsToObject(rows *sql.Rows, modelGenerator func() Model) ([]model.Object, error) {

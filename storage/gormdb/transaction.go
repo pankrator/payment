@@ -65,7 +65,7 @@ type Transaction struct {
 
 func (t *Transaction) InitSQL(db *gorm.DB) error {
 	err := db.Model(t).
-		AddForeignKey("transaction_id", "transactions(uuid)", "RESTRICT", "RESTRICT").
+		AddForeignKey("transaction_id", "transactions(uuid)", "SET NULL", "RESTRICT").
 		AddForeignKey("merchant_id", "merchants(uuid)", "RESTRICT", "RESTRICT").
 		Error
 

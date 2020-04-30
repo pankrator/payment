@@ -5,13 +5,14 @@ import (
 	"net/http"
 
 	"github.com/pankrator/payment/model"
+	"github.com/pankrator/payment/query"
 
 	"github.com/pankrator/payment/web"
 )
 
 type PaymentService interface {
 	Create(*model.Transaction) (model.Object, error)
-	List() ([]model.Object, error)
+	List(query []query.Query) ([]model.Object, error)
 }
 
 type PaymentController struct {
@@ -42,7 +43,8 @@ func (c *PaymentController) payment(rw http.ResponseWriter, req *web.Request) {
 }
 
 func (c *PaymentController) list(rw http.ResponseWriter, req *web.Request) {
-	result, err := c.paymentService.List()
+	q := query.QueryFromContext(req.Request.Context())
+	result, err := c.paymentService.List(q)
 	if err != nil {
 		web.WriteError(rw, &web.HTTPError{
 			StatusCode:  http.StatusBadRequest,

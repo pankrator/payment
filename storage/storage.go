@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/pankrator/payment/model"
+	"github.com/pankrator/payment/query"
 )
 
 var ErrNotFound error = errors.New("not found in storage")
@@ -19,7 +20,8 @@ type Storage interface {
 	DeleteAll(typee string) error
 	Delete(typee string, condition string, args ...interface{}) error
 	Get(typee string, id string) (model.Object, error)
-	List(typee string) ([]model.Object, error)
+	GetBy(typee string, condition string, args ...interface{}) (model.Object, error)
+	List(typee string, q ...query.Query) ([]model.Object, error)
 	Count(typee string, condition string, args ...interface{}) (int, error)
 
 	Transaction(f func(s Storage) error) error
