@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"time"
 )
 
 const TransactionObjectType string = "Transaction"
@@ -34,6 +35,8 @@ type Transaction struct {
 	CustomerEmail string           `json:"customer_email" xml:"CustomerEmail"`
 	CustomerPhone string           `json:"customer_phone" xml:"CustomerPhone"`
 	Status        TransactionState `json:"status" xml:"Status"`
+	CreatedAt     time.Time        `json:"created_at"`
+	UpdatedAt     time.Time        `json:"updated_at"`
 
 	DependsOnUUID string `json:"depends_on_uuid" xml:"DependsOnUUID"`
 	MerchantID    string `json:"merchant_id" xml:"MerchantID"`

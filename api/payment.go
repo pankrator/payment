@@ -1,8 +1,10 @@
 package api
 
 import (
+	"html/template"
 	"log"
 	"net/http"
+	"path"
 
 	"github.com/pankrator/payment/model"
 	"github.com/pankrator/payment/query"
@@ -55,6 +57,35 @@ func (c *PaymentController) list(rw http.ResponseWriter, req *web.Request) {
 	web.WriteJSON(rw, http.StatusCreated, result)
 }
 
+func (c *PaymentController) view(rw http.ResponseWriter, req *web.Request) {
+	fp := path.Join("templates", "payments.html")
+	tmpl, err := template.ParseFiles(fp)
+	if err != nil {
+		web.WriteError(rw, &web.HTTPError{
+			StatusCode:  http.StatusInternalServerError,
+			Description: "could not load view",
+		})
+		return
+	}
+	q := query.QueryFromContext(req.Request.Context())
+	result, err := c.paymentService.List(q)
+	if err != nil {
+		web.WriteError(rw, &web.HTTPError{
+			StatusCode:  http.StatusBadRequest,
+			Description: err.Error(),
+		})
+		return
+	}
+
+	if err := tmpl.Execute(rw, result); err != nil {
+		web.WriteError(rw, &web.HTTPError{
+			StatusCode:  http.StatusInternalServerError,
+			Description: "could not load view",
+		})
+		return
+	}
+}
+
 func (c *PaymentController) Routes() []web.Route {
 	return []web.Route{
 		{
@@ -79,6 +110,16 @@ func (c *PaymentController) Routes() []web.Route {
 				return []string{"transaction.read"}
 			},
 			Handler: c.list,
+		},
+		{
+			Endpoint: web.Endpoint{
+				Method: http.MethodGet,
+				Path:   "/payment/view",
+			},
+			Handler: c.view,
+			Scopes: func() []string {
+				return []string{"transaction.read"}
+			},
 		},
 	}
 }

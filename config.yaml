@@ -16,5 +16,5 @@ users:
   file_name: users.csv
   file_location: "."
 cleaner:
-  interval: 10s
+  interval: 2m
   keep_transactions_for: 1h

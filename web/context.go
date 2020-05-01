@@ -9,6 +9,7 @@ const (
 )
 
 type UserData struct {
+	Name   string
 	Email  string
 	Scopes []string
 }

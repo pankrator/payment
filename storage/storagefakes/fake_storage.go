@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/pankrator/payment/model"
+	"github.com/pankrator/payment/query"
 	"github.com/pankrator/payment/storage"
 )
 
@@ -80,10 +81,26 @@ type FakeStorage struct {
 		result1 model.Object
 		result2 error
 	}
-	ListStub        func(string) ([]model.Object, error)
+	GetByStub        func(string, string, ...interface{}) (model.Object, error)
+	getByMutex       sync.RWMutex
+	getByArgsForCall []struct {
+		arg1 string
+		arg2 string
+		arg3 []interface{}
+	}
+	getByReturns struct {
+		result1 model.Object
+		result2 error
+	}
+	getByReturnsOnCall map[int]struct {
+		result1 model.Object
+		result2 error
+	}
+	ListStub        func(string, ...query.Query) ([]model.Object, error)
 	listMutex       sync.RWMutex
 	listArgsForCall []struct {
 		arg1 string
+		arg2 []query.Query
 	}
 	listReturns struct {
 		result1 []model.Object
@@ -467,16 +484,82 @@ func (fake *FakeStorage) GetReturnsOnCall(i int, result1 model.Object, result2 e
 	}{result1, result2}
 }
 
-func (fake *FakeStorage) List(arg1 string) ([]model.Object, error) {
+func (fake *FakeStorage) GetBy(arg1 string, arg2 string, arg3 ...interface{}) (model.Object, error) {
+	fake.getByMutex.Lock()
+	ret, specificReturn := fake.getByReturnsOnCall[len(fake.getByArgsForCall)]
+	fake.getByArgsForCall = append(fake.getByArgsForCall, struct {
+		arg1 string
+		arg2 string
+		arg3 []interface{}
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("GetBy", []interface{}{arg1, arg2, arg3})
+	fake.getByMutex.Unlock()
+	if fake.GetByStub != nil {
+		return fake.GetByStub(arg1, arg2, arg3...)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.getByReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeStorage) GetByCallCount() int {
+	fake.getByMutex.RLock()
+	defer fake.getByMutex.RUnlock()
+	return len(fake.getByArgsForCall)
+}
+
+func (fake *FakeStorage) GetByCalls(stub func(string, string, ...interface{}) (model.Object, error)) {
+	fake.getByMutex.Lock()
+	defer fake.getByMutex.Unlock()
+	fake.GetByStub = stub
+}
+
+func (fake *FakeStorage) GetByArgsForCall(i int) (string, string, []interface{}) {
+	fake.getByMutex.RLock()
+	defer fake.getByMutex.RUnlock()
+	argsForCall := fake.getByArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeStorage) GetByReturns(result1 model.Object, result2 error) {
+	fake.getByMutex.Lock()
+	defer fake.getByMutex.Unlock()
+	fake.GetByStub = nil
+	fake.getByReturns = struct {
+		result1 model.Object
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeStorage) GetByReturnsOnCall(i int, result1 model.Object, result2 error) {
+	fake.getByMutex.Lock()
+	defer fake.getByMutex.Unlock()
+	fake.GetByStub = nil
+	if fake.getByReturnsOnCall == nil {
+		fake.getByReturnsOnCall = make(map[int]struct {
+			result1 model.Object
+			result2 error
+		})
+	}
+	fake.getByReturnsOnCall[i] = struct {
+		result1 model.Object
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeStorage) List(arg1 string, arg2 ...query.Query) ([]model.Object, error) {
 	fake.listMutex.Lock()
 	ret, specificReturn := fake.listReturnsOnCall[len(fake.listArgsForCall)]
 	fake.listArgsForCall = append(fake.listArgsForCall, struct {
 		arg1 string
-	}{arg1})
-	fake.recordInvocation("List", []interface{}{arg1})
+		arg2 []query.Query
+	}{arg1, arg2})
+	fake.recordInvocation("List", []interface{}{arg1, arg2})
 	fake.listMutex.Unlock()
 	if fake.ListStub != nil {
-		return fake.ListStub(arg1)
+		return fake.ListStub(arg1, arg2...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -491,17 +574,17 @@ func (fake *FakeStorage) ListCallCount() int {
 	return len(fake.listArgsForCall)
 }
 
-func (fake *FakeStorage) ListCalls(stub func(string) ([]model.Object, error)) {
+func (fake *FakeStorage) ListCalls(stub func(string, ...query.Query) ([]model.Object, error)) {
 	fake.listMutex.Lock()
 	defer fake.listMutex.Unlock()
 	fake.ListStub = stub
 }
 
-func (fake *FakeStorage) ListArgsForCall(i int) string {
+func (fake *FakeStorage) ListArgsForCall(i int) (string, []query.Query) {
 	fake.listMutex.RLock()
 	defer fake.listMutex.RUnlock()
 	argsForCall := fake.listArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeStorage) ListReturns(result1 []model.Object, result2 error) {
@@ -725,6 +808,8 @@ func (fake *FakeStorage) Invocations() map[string][][]interface{} {
 	defer fake.deleteAllMutex.RUnlock()
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
+	fake.getByMutex.RLock()
+	defer fake.getByMutex.RUnlock()
 	fake.listMutex.RLock()
 	defer fake.listMutex.RUnlock()
 	fake.openMutex.RLock()

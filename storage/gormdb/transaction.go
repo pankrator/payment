@@ -81,6 +81,8 @@ func (t *Transaction) ToObject() model.Object {
 		Type:          model.TransactionType(t.Type),
 		Status:        model.TransactionState(t.Status),
 		MerchantID:    t.MerchantID,
+		CreatedAt:     t.CreatedAt,
+		UpdatedAt:     t.UpdatedAt,
 	}
 
 	if t.TransactionID != nil {

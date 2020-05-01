@@ -60,14 +60,16 @@ func (ta *TokenAuthenticator) Authenticate(req *http.Request) (*web.UserData, er
 		return nil, NoTokenProvidedErr
 	}
 	tokenText := authHeader[len("Bearer "):]
+
 	token, err := ta.verifier.Verify(ctx, tokenText)
 	if err != nil {
 		log.Printf("could not verify token: %s", err)
 		return nil, VerificationFailedErr
 	}
 	claims := &struct {
-		Email  string   `json:"email"`
-		Scopes []string `json:"scope"`
+		Email    string   `json:"email"`
+		Scopes   []string `json:"scope"`
+		UserName string   `json:"user_name"`
 	}{}
 	if err := token.Claims(claims); err != nil {
 		return nil, err
@@ -75,5 +77,6 @@ func (ta *TokenAuthenticator) Authenticate(req *http.Request) (*web.UserData, er
 	return &web.UserData{
 		Email:  claims.Email,
 		Scopes: claims.Scopes,
+		Name:   claims.UserName,
 	}, nil
 }

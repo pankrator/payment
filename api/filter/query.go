@@ -62,5 +62,9 @@ func (q *Query) Matchers() []web.Endpoint {
 			Path:   "/payment",
 			Method: http.MethodGet,
 		},
+		{
+			Path:   "/transactions",
+			Method: http.MethodGet,
+		},
 	}
 }

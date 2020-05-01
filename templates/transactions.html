@@ -1,0 +1,65 @@
+<div style="margin-bottom: 20px;">
+    <div>
+        Hello {{.user.Name}},
+    </div>
+    {{if .merchant}}
+    <span>
+        Your total sum is: {{ .merchant.TotalTransactionSum }}
+        <div>It is based on transactions that might not appear here</div>
+    </span>
+    {{end}}
+</div>
+{{range $scope := .user.Scopes}}
+    {{if eq $scope "transaction.write" }}
+        <div>
+            <span>
+                Amount: <input type="text" id="amount"/>
+            </span>
+            <span>
+                Type: <input type="text" id="type"/>
+            </span>
+            <span>
+                Customer email: <input type="text" id="customer-email"/>
+            </span>
+            <span>
+                Merchant: <input type="text" id="merchant"/>
+            </span>
+            <span>
+                DependsOnUUID: <input type="text" id="depends-on"/>
+            </span>
+            <input type="button" id="create" value="Create"/>
+        </div>
+    {{end}}
+{{end}}
+{{range $uuid, $t := .transactions}}
+<div style="margin-top:5px;margin-bottom: 5px;">
+    {{$first := (index $t 0)}}
+    <div style="display:inline-block;border: 1px solid black">
+        Amount: {{$first.Amount}} customer: {{$first.CustomerEmail}}
+        <div>
+            {{$first.MerchantID}}
+        </div>
+    </div>
+    <div style="display:inline-block;border: 1px solid black">
+        {{range $i, $c := $t}}
+            {{if gt $i 0}}
+                ->
+            {{end}}
+            {{if eq $c.Status "approved"}}
+            <div style="display:inline-block;background: green;">
+            {{else if eq $c.Status "refunded"}}
+            <div style="display:inline-block;background: yellow;">
+            {{else if eq $c.Status "reversed"}}
+            <div style="display:inline-block;background: red;">
+            {{else}}
+            <div>
+            {{end}}
+                <div style="display:inline-block;width:320px;">
+                    {{$c.Type}} ({{$c.Status}}) {{ftime $c.CreatedAt}}
+                    <div>{{$c.UUID}}</div>
+                </div>
+            </div>
+        {{end}}
+    </div>
+</div>
+{{end}}

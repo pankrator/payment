@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
 )
 
@@ -47,6 +48,7 @@ func NewServer(s *Settings, api *Api) *Server {
 	router := mux.NewRouter()
 	router.StrictSlash(true)
 	router.Use(recoveryMiddleware())
+	router.Use(csrf.Protect([]byte("fffffffffffffffffffffffffff"), csrf.Secure(false)))
 	registerControllers(api, router)
 
 	return &Server{

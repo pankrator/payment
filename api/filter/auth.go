@@ -45,5 +45,9 @@ func (m *Auth) Matchers() []web.Endpoint {
 			Path:   "/payment",
 			Method: http.MethodGet,
 		},
+		{
+			Path:   "/transactions",
+			Method: http.MethodGet,
+		},
 	}
 }

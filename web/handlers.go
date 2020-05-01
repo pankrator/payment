@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"runtime/debug"
 
+	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
 	"github.com/pankrator/payment/model"
 )
@@ -34,10 +35,15 @@ func HandlerWrapper(handler HandlerFunc, modelBlueprint func() model.Object) htt
 		webRequest := &Request{
 			Request: req,
 		}
-		if req.Method == http.MethodPost {
+		if req.Method == http.MethodPost && modelBlueprint != nil {
 			data, err := ReadBody(req.Body)
 			if err != nil {
 				WriteError(rw, err)
+				return
+			}
+
+			if modelBlueprint == nil {
+				handler(rw, webRequest)
 				return
 			}
 
@@ -57,6 +63,10 @@ func HandlerWrapper(handler HandlerFunc, modelBlueprint func() model.Object) htt
 				return
 			}
 			webRequest.Model = object
+		}
+		if req.Method == http.MethodGet {
+			csrfToken := csrf.Token(webRequest.Request)
+			rw.Header().Set("X-CSRF-Token", csrfToken)
 		}
 
 		handler(rw, webRequest)

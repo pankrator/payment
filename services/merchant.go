@@ -34,3 +34,11 @@ func (ms *MerchantService) Create(merchant *model.Merchant) (model.Object, error
 
 	return ms.repository.Create(merchant)
 }
+
+func (ms *MerchantService) Get(uuid string) (*model.Merchant, error) {
+	object, err := ms.repository.Get(model.MerchantType, uuid)
+	if err != nil {
+		return nil, err
+	}
+	return object.(*model.Merchant), nil
+}

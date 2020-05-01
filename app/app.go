@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"sync"
@@ -35,7 +36,7 @@ type App struct {
 	Settings   *config.Settings
 
 	transactionCleaner *services.TransactionClenaer
-	merchantService    MerchantService
+	merchantService    api.MerchantService
 }
 
 func New(configFileLocation string) *App {
@@ -78,6 +79,8 @@ func New(configFileLocation string) *App {
 	api := &web.Api{
 		Controllers: []web.Controller{
 			api.NewPaymentController(paymentService),
+			api.NewLoginController(settings.Auth),
+			api.NewPagesController(paymentService, merchantService),
 		},
 		Filters: []web.Filter{
 			authFilter,
@@ -85,7 +88,12 @@ func New(configFileLocation string) *App {
 		},
 	}
 
+	staticDir := "/templates/resources"
 	server := web.NewServer(settings.Server, api)
+	server.Router.
+		PathPrefix(staticDir).
+		Handler(http.StripPrefix(staticDir, http.FileServer(http.Dir("."+staticDir))))
+
 	return &App{
 		Server:             server,
 		Repository:         repository,
