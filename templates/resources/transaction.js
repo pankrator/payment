@@ -24,16 +24,17 @@ function createTransaction(amount, type, merchantUUID, customerEmail, dependsOnU
 }
 
 function transactionsOnload() {
-    let createButton = document.getElementById("create");
-    createButton.addEventListener("click", function() {
-        let amount = document.getElementById("amount").value;
-        let type = document.getElementById("type").value;
-        let customerEmail = document.getElementById("customer-email").value;
-        let dependsOnUUID = document.getElementById("depends-on").value;
-        let merchantUUID = document.getElementById("merchant").value;
+    document.addEventListener("click", function(e) {
+        if (e.target && e.target.id == "create") {
+            let amount = document.getElementById("amount").value;
+            let type = document.getElementById("type").value;
+            let customerEmail = document.getElementById("customer-email").value;
+            let dependsOnUUID = document.getElementById("depends-on").value;
+            let merchantUUID = document.getElementById("merchant").value;
 
-        createTransaction(amount, type, merchantUUID, customerEmail, dependsOnUUID, (data) => {
-            console.log(data);
-        });
-    }, false);
+            createTransaction(amount, type, merchantUUID, customerEmail, dependsOnUUID, (data) => {
+                console.log(data);
+            });
+        }
+    });
 }
