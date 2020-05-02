@@ -24,7 +24,7 @@ function createTransaction(amount, type, merchantUUID, customerEmail, dependsOnU
 }
 
 function transactionsOnload() {
-    document.addEventListener("click", function(e) {
+    document.body.addEventListener("click", function(e) {
         if (e.target && e.target.id == "create") {
             let amount = document.getElementById("amount").value;
             let type = document.getElementById("type").value;

@@ -7,12 +7,12 @@ import (
 )
 
 func ScopeWrapper(handler HandlerFunc, scopesFunc func() []string) HandlerFunc {
-	var scopes []string
+	var requiredScopes []string
 	if scopesFunc != nil {
-		scopes = scopesFunc()
+		requiredScopes = scopesFunc()
 	}
 	return func(rw http.ResponseWriter, req *Request) {
-		if len(scopes) == 0 {
+		if len(requiredScopes) == 0 {
 			handler(rw, req)
 			return
 		}
@@ -25,23 +25,31 @@ func ScopeWrapper(handler HandlerFunc, scopesFunc func() []string) HandlerFunc {
 			return
 		}
 
-		for _, requiredScope := range scopes {
-			scopeFound := false
-			for _, scope := range user.Scopes {
-				if scope == requiredScope {
-					scopeFound = true
-					break
-				}
-			}
-			if !scopeFound {
-				WriteError(rw, &HTTPError{
-					StatusCode:  http.StatusForbidden,
-					Description: fmt.Sprintf("User scopes [%s] does not contain required scope %s", strings.Join(user.Scopes, ","), requiredScope),
-				})
-				return
-			}
+		matched, scope := HasScopes(user.Scopes, requiredScopes)
+		if !matched {
+			WriteError(rw, &HTTPError{
+				StatusCode:  http.StatusForbidden,
+				Description: fmt.Sprintf("User scopes [%s] does not contain required scope %s", strings.Join(user.Scopes, ","), scope),
+			})
+			return
 		}
 
 		handler(rw, req)
 	}
+}
+
+func HasScopes(scopes []string, required []string) (bool, string) {
+	for _, requiredScope := range required {
+		scopeMatched := false
+		for _, scope := range scopes {
+			if scope == requiredScope {
+				scopeMatched = true
+				break
+			}
+		}
+		if !scopeMatched {
+			return false, requiredScope
+		}
+	}
+	return true, ""
 }

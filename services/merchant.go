@@ -6,6 +6,7 @@ import (
 
 	"github.com/gofrs/uuid"
 	"github.com/pankrator/payment/model"
+	"github.com/pankrator/payment/query"
 	"github.com/pankrator/payment/storage"
 )
 
@@ -41,4 +42,8 @@ func (ms *MerchantService) Get(uuid string) (*model.Merchant, error) {
 		return nil, err
 	}
 	return object.(*model.Merchant), nil
+}
+
+func (ms *MerchantService) List(q []query.Query) ([]model.Object, error) {
+	return ms.repository.List(model.MerchantType, q...)
 }

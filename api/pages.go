@@ -18,6 +18,7 @@ import (
 type MerchantService interface {
 	Create(*model.Merchant) (model.Object, error)
 	Get(string) (*model.Merchant, error)
+	List(query []query.Query) ([]model.Object, error)
 }
 
 type PagesController struct {
@@ -81,9 +82,20 @@ func (c *PagesController) showTransactions(rw http.ResponseWriter, req *web.Requ
 		return
 	}
 
+	merchants := make([]model.Object, 0)
+	matched, _ := web.HasScopes(user.Scopes, []string{"merchant.read"})
+	if matched {
+		merchants, err = c.merchantService.List(nil)
+		if err != nil {
+			web.WriteError(rw, err)
+			return
+		}
+	}
+
 	if err := tmpl.Execute(rw, map[string]interface{}{
 		"user":         user,
 		"merchant":     merchant,
+		"merchants":    merchants,
 		"transactions": transactionPageModel,
 	}); err != nil {
 		log.Printf("Could not execute view: %s", err)

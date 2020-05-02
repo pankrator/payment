@@ -8,6 +8,15 @@
         <div>It is based on transactions that might not appear here</div>
     </span>
     {{end}}
+    {{if .merchants}}
+    <div>Here are all the merchants:</div>
+    {{range .merchants}}
+        <div>
+            {{.Name}} {{.UUID}}
+        </div>
+    {{end}}
+
+    {{end}}
 </div>
 {{range $scope := .user.Scopes}}
     {{if eq $scope "transaction.write" }}
@@ -16,16 +25,29 @@
                 Amount: <input type="text" id="amount"/>
             </span>
             <span>
-                Type: <input type="text" id="type"/>
+                Type:
+                <select id="type">
+                    <option>authorize</option>
+                    <option>charge</option>
+                    <option>refund</option>
+                    <option>reversal</option>
+                </select>
             </span>
             <span>
                 Customer email: <input type="text" id="customer-email"/>
             </span>
             <span>
-                Merchant: <input type="text" id="merchant"/>
+                Merchant:
+                <select id="merchant">
+                    {{range $m := $.merchants}}
+                    <option value="{{$m.UUID}}">
+                        {{$m.Name}}
+                    </option>
+                    {{end}}
+                </select>
             </span>
             <span>
-                DependsOnUUID: <input type="text" id="depends-on"/>
+                parent transaction UUID: <input type="text" id="depends-on"/>
             </span>
             <input type="button" id="create" value="Create"/>
         </div>
