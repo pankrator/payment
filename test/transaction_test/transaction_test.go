@@ -32,7 +32,8 @@ var _ = Describe("Transactions", func() {
 	})
 
 	BeforeEach(func() {
-		testApp.Repository.Create(merchant)
+		_, err := testApp.Repository.Create(merchant)
+		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -50,12 +51,12 @@ var _ = Describe("Transactions", func() {
 				MerchantID:    merchant.UUID,
 				Type:          model.Authorize,
 			}
-			authorizeTransactionID = testApp.Expect.POST("/payment").WithJSON(transaction).Expect().
+			authorizeTransactionID = testApp.ExpectWithAuth.POST("/payment").WithJSON(transaction).Expect().
 				Status(http.StatusCreated).JSON().Object().Value("uuid").String().Raw()
 		})
 
 		It("should not be able to refund authorize transaction", func() {
-			testApp.Expect.POST("/payment").WithJSON(&model.Transaction{
+			testApp.ExpectWithAuth.POST("/payment").WithJSON(&model.Transaction{
 				Amount:        10,
 				CustomerEmail: "email",
 				CustomerPhone: "0000000",
@@ -68,6 +69,7 @@ var _ = Describe("Transactions", func() {
 		It("should find authorize transaction in db", func() {
 			result, err := testApp.Repository.Get(model.TransactionObjectType, authorizeTransactionID)
 			Expect(err).ShouldNot(HaveOccurred())
+			t := result.(*model.Transaction)
 			Expect(result).To(Equal(&model.Transaction{
 				UUID:          authorizeTransactionID,
 				Status:        model.Approved,
@@ -76,13 +78,15 @@ var _ = Describe("Transactions", func() {
 				CustomerPhone: "0000000",
 				MerchantID:    merchant.UUID,
 				Type:          model.Authorize,
+				CreatedAt:     t.CreatedAt,
+				UpdatedAt:     t.UpdatedAt,
 			}))
 		})
 
 		When("charge transaction is created for the authorize one", func() {
 			var chargeTransactionID string
 			BeforeEach(func() {
-				chargeTransactionID = testApp.Expect.POST("/payment").WithJSON(&model.Transaction{
+				chargeTransactionID = testApp.ExpectWithAuth.POST("/payment").WithJSON(&model.Transaction{
 					Amount:        10,
 					CustomerEmail: "email",
 					CustomerPhone: "0000000",
@@ -106,7 +110,7 @@ var _ = Describe("Transactions", func() {
 			})
 
 			It("should not be able to create another charge for the same parent", func() {
-				testApp.Expect.POST("/payment").WithJSON(&model.Transaction{
+				testApp.ExpectWithAuth.POST("/payment").WithJSON(&model.Transaction{
 					Amount:        10,
 					CustomerEmail: "email",
 					CustomerPhone: "0000000",
@@ -120,7 +124,7 @@ var _ = Describe("Transactions", func() {
 			})
 
 			It("should not be able to create authorize to depend on charge", func() {
-				testApp.Expect.POST("/payment").WithJSON(&model.Transaction{
+				testApp.ExpectWithAuth.POST("/payment").WithJSON(&model.Transaction{
 					Amount:        10,
 					CustomerEmail: "email",
 					CustomerPhone: "0000000",
@@ -132,7 +136,7 @@ var _ = Describe("Transactions", func() {
 			})
 
 			It("should not be able to create reversal to depend on charge", func() {
-				testApp.Expect.POST("/payment").WithJSON(&model.Transaction{
+				testApp.ExpectWithAuth.POST("/payment").WithJSON(&model.Transaction{
 					Amount:        10,
 					CustomerEmail: "email",
 					CustomerPhone: "0000000",
@@ -146,7 +150,7 @@ var _ = Describe("Transactions", func() {
 			When("charge transaction is refunded", func() {
 				var refundTransactionID string
 				BeforeEach(func() {
-					refundTransactionID = testApp.Expect.POST("/payment").WithJSON(&model.Transaction{
+					refundTransactionID = testApp.ExpectWithAuth.POST("/payment").WithJSON(&model.Transaction{
 						Amount:        10,
 						CustomerEmail: "email",
 						CustomerPhone: "0000000",
@@ -179,7 +183,7 @@ var _ = Describe("Transactions", func() {
 				})
 
 				It("should not be able to refund twice", func() {
-					testApp.Expect.POST("/payment").WithJSON(&model.Transaction{
+					testApp.ExpectWithAuth.POST("/payment").WithJSON(&model.Transaction{
 						Amount:        10,
 						CustomerEmail: "email",
 						CustomerPhone: "0000000",

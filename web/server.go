@@ -12,20 +12,24 @@ import (
 )
 
 type Settings struct {
-	Host           string        `mapstructure:"host"`
-	Port           string        `mapstructure:"port"`
-	HeaderTimeout  time.Duration `mapstructure:"header_timeout"`
-	RequestTimeout time.Duration `mapstructure:"request_timeout"`
-	WriteTimeout   time.Duration `mapstructure:"write_timeout"`
+	Host              string        `mapstructure:"host"`
+	Port              string        `mapstructure:"port"`
+	HeaderTimeout     time.Duration `mapstructure:"header_timeout"`
+	RequestTimeout    time.Duration `mapstructure:"request_timeout"`
+	WriteTimeout      time.Duration `mapstructure:"write_timeout"`
+	UseCSRFProtection bool          `mapstructure:"use_csrf_protection"`
+	CSRFTokenKey      string        `mapstructure:"csrf_key"`
 }
 
 func DefaultSettings() *Settings {
 	return &Settings{
-		Host:           "127.0.0.1",
-		Port:           "8000",
-		HeaderTimeout:  time.Second * 10,
-		RequestTimeout: time.Second * 10,
-		WriteTimeout:   time.Second * 10,
+		Host:              "127.0.0.1",
+		Port:              "8000",
+		HeaderTimeout:     time.Second * 10,
+		RequestTimeout:    time.Second * 10,
+		WriteTimeout:      time.Second * 10,
+		CSRFTokenKey:      "ffffff",
+		UseCSRFProtection: true,
 	}
 }
 
@@ -36,6 +40,8 @@ func (s *Settings) Keys() []string {
 		"header_timeout",
 		"request_timeout",
 		"write_timeout",
+		"use_csrf_protection",
+		"csrf_key",
 	}
 }
 
@@ -48,7 +54,9 @@ func NewServer(s *Settings, api *Api) *Server {
 	router := mux.NewRouter()
 	router.StrictSlash(true)
 	router.Use(recoveryMiddleware())
-	router.Use(csrf.Protect([]byte("fffffffffffffffffffffffffff"), csrf.Secure(false)))
+	if s.UseCSRFProtection {
+		router.Use(csrf.Protect([]byte(s.CSRFTokenKey), csrf.Secure(false)))
+	}
 	registerControllers(api, router)
 
 	return &Server{

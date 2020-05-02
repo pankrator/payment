@@ -16,7 +16,9 @@ var _ = Describe("Server", func() {
 	web.RegisterParser("application/xml", &web.XMLParser{})
 	web.RegisterParser("application/json", &web.JSONParser{})
 
-	server := web.NewServer(web.DefaultSettings(), &web.Api{
+	settings := web.DefaultSettings()
+	settings.UseCSRFProtection = false
+	server := web.NewServer(settings, &web.Api{
 		Controllers: []web.Controller{&testCtrl{}},
 	})
 	testServer := httptest.NewServer(server.Router)

@@ -36,7 +36,7 @@ type App struct {
 	Settings   *config.Settings
 
 	transactionCleaner *services.TransactionClenaer
-	merchantService    api.MerchantService
+	MerchantService    api.MerchantService
 }
 
 func New(configFileLocation string) *App {
@@ -99,7 +99,7 @@ func New(configFileLocation string) *App {
 		Repository:         repository,
 		UaaClient:          uaaClient,
 		Settings:           settings,
-		merchantService:    merchantService,
+		MerchantService:    merchantService,
 		transactionCleaner: transactionCleaner,
 	}
 }
@@ -121,7 +121,7 @@ func (a *App) initUsers(ctx context.Context, usersData []users.User, groupNames 
 				panic(err)
 			}
 			if count < 1 {
-				_, err = a.merchantService.Create(model.MerchantFromUser(user))
+				_, err = a.MerchantService.Create(model.MerchantFromUser(user))
 				if err != nil {
 					panic(fmt.Errorf("could not create merchant: %s", err))
 				}
@@ -146,25 +146,6 @@ func (a *App) initUsers(ctx context.Context, usersData []users.User, groupNames 
 	}
 }
 
-func (a *App) loadUsers() *users.UserReader {
-	reader := users.NewCSVReader(a.Settings.Users)
-	if err := reader.Load(); err != nil {
-		panic(fmt.Errorf("Could not read users: %s", err))
-	}
-	return reader
-}
-
-func splitUsersByType(reader *users.UserReader) map[users.UserType][]users.User {
-	result := make(map[users.UserType][]users.User)
-	for _, user := range reader.Users {
-		if _, found := result[user.Type]; !found {
-			result[user.Type] = make([]users.User, 0)
-		}
-		result[user.Type] = append(result[user.Type], user)
-	}
-	return result
-}
-
 func (a *App) Start(ctx context.Context, wg *sync.WaitGroup, cancel context.CancelFunc) {
 	go handleInterrupts(ctx, cancel)
 
@@ -174,18 +155,18 @@ func (a *App) Start(ctx context.Context, wg *sync.WaitGroup, cancel context.Canc
 		panic(err)
 	}
 
-	reader := a.loadUsers()
-	usersByType := splitUsersByType(reader)
+	userInitiator := NewUserInitiator(a.UaaClient, a.Repository, a.MerchantService)
+	usersByType := userInitiator.LoadUsers(a.Settings.Users)
 
 	adminGroups := []string{"merchant.read", "merchant.write", "merchant.delete", "transaction.write", "transaction.read"}
 	merchantGroups := []string{"transaction.read"}
 
-	a.initUsers(
+	userInitiator.InitUsers(
 		ctx,
 		usersByType[users.Admin],
 		adminGroups,
 	)
-	a.initUsers(
+	userInitiator.InitUsers(
 		ctx,
 		usersByType[users.Merchant],
 		merchantGroups,
