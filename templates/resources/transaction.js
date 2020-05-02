@@ -15,10 +15,10 @@ function createTransaction(amount, type, merchantUUID, customerEmail, dependsOnU
             "Content-Type": "application/json"
         },
         success: (data, status, xhr) => {
-            callback(data);
+            callback(null, data);
         },
         error: (err) => {
-            console.log(err.responseText);
+            callback(err);
         }
     });
 }
@@ -32,8 +32,13 @@ function transactionsOnload() {
             let dependsOnUUID = document.getElementById("depends-on").value;
             let merchantUUID = document.getElementById("merchant").value;
 
-            createTransaction(amount, type, merchantUUID, customerEmail, dependsOnUUID, (data) => {
-                console.log(data);
+            createTransaction(amount, type, merchantUUID, customerEmail, dependsOnUUID, (err, data) => {
+                if (err) {
+                    let errBox = document.getElementById("transaction-error-box");
+                    errBox.innerHTML = err.responseText;
+                    return;
+                }
+                loadView("/transactions", body, function() {});
             });
         }
     });

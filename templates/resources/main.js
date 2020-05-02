@@ -25,7 +25,6 @@ function refreshToken(callback) {
             }
         },
         error: (err) => {
-            console.log(err);
             callback();
         }
     })
