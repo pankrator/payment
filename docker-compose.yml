@@ -1,0 +1,28 @@
+version: '3.0'
+services:
+  payment_system:
+    build: .
+    ports:
+    - "8000:8000"
+    environment:
+      SERVER_HOST: ""
+      STORAGE_HOST: db
+      AUTH_OAUTH_SERVER_URL: http://uaa:8080
+    depends_on:
+      - uaa
+      - db
+    expose:
+      - "8000"
+  uaa:
+    ports:
+    - "8080:8080"
+    build:
+      context: local_dev/uaa/.
+  db:
+    environment:
+      POSTGRES_PASSWORD: payment
+      POSTGRES_USER: payment
+      POSTGRES_DB: payment
+    image: postgres
+    ports:
+    - "5432:5432"

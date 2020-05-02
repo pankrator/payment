@@ -75,8 +75,8 @@ func New(configPath string, fs afero.Fs) (*Config, error) {
 	v.SetConfigName("config")
 	v.AddConfigPath(configPath)
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.AllowEmptyEnv(true)
 	v.AutomaticEnv()
-	v.SetEnvPrefix("PAY")
 	v.SetFs(fs)
 
 	if err := v.ReadInConfig(); err != nil {

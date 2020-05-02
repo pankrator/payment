@@ -23,7 +23,7 @@ type Settings struct {
 
 func DefaultSettings() *Settings {
 	return &Settings{
-		Host:              "127.0.0.1",
+		Host:              "",
 		Port:              "8000",
 		HeaderTimeout:     time.Second * 10,
 		RequestTimeout:    time.Second * 10,
@@ -88,7 +88,7 @@ func (s *Server) Run(ctx context.Context, wg *sync.WaitGroup) {
 	go shutdownServer(ctx, wg, server)
 
 	wg.Add(1)
-	log.Printf("Server listening on port %s...", s.settings.Port)
+	log.Printf("Server listening on %s:%s...", s.settings.Host, s.settings.Port)
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Panicf("http server failed: %s", err)
 	}
