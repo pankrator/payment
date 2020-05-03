@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"net/mail"
 	"time"
 )
 
@@ -61,10 +62,20 @@ func (t *Transaction) Validate() error {
 		if t.DependsOnUUID != "" {
 			return fmt.Errorf("transaction of type %s cannot depend on another transaction", Authorize)
 		}
-	default:
+	case Charge:
+		fallthrough
+	case Refund:
 		if t.DependsOnUUID == "" {
 			return fmt.Errorf("transaction of type %s should depend on another transaction", t.Type)
 		}
+	case Reversal:
+	default:
+		return fmt.Errorf("transaction type is unknown")
+	}
+
+	_, err := mail.ParseAddress(t.CustomerEmail)
+	if err != nil {
+		return fmt.Errorf("customer email is invalid: %s", err)
 	}
 	return nil
 }

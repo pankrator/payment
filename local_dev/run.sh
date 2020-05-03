@@ -7,4 +7,4 @@ until curl -sfk http://localhost:8080/.well-known/openid-configuration > /dev/nu
     sleep 2
 done
 
-docker-compose up -d --no-deps --build payment_system
+docker-compose up -d --no-deps --force-recreate --build payment_system

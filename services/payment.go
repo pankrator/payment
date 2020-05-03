@@ -164,6 +164,10 @@ func (ps *PaymentService) checkParentTransactionConditions(transaction *model.Tr
 			return fmt.Errorf("parent transaction should be of type %s", model.Charge)
 		}
 	}
+
+	if transaction.Type != model.Reversal && parent.Amount != transaction.Amount {
+		return fmt.Errorf("amount the two transactions is different, but it should be: %d", parent.Amount)
+	}
 	return nil
 }
 
