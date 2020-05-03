@@ -15,20 +15,3 @@ function login(username, password, callback) {
         }
     });
 }
-
-function loginOnload() {
-    let loginButton = document.getElementById("login-button");
-    loginButton.addEventListener("click", function() {
-        let username = document.getElementById("username").value;
-        let password = document.getElementById("password").value;
-        login(username, password, function(err, token) {
-            if (err) {
-                let errBox = document.getElementById("login_err");
-                errBox.innerHTML = "could not login " + err;
-                return;
-            }
-            loginData.token = token;
-            loadView("/transactions", body, function() {});
-        });
-    }, false);
-}
