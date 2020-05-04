@@ -24,3 +24,11 @@ Admin user: **admin** with password **secret**
 Merchant **ivan** with password **1234**
 
 Merchant **koko** with password **1234**
+
+## Run tests
+
+Before running all tests, there must be UAA and Postgre containers running. Use the following command:
+
+```sh
+docker-compose up -d --force-recreate --build uaa db
+```
