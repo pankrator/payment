@@ -1,6 +1,5 @@
 # Payment system
 
-dasdsad
 ## How to run locally
 
 Run the script in local dev folder:
