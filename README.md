@@ -1,7 +1,7 @@
 # Payment system
 
 ## How to run locally
-asdsadsa
+
 Run the script in local dev folder:
 
 ```sh
